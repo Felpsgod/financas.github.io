@@ -11,6 +11,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- jsPDF para exportar PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
     <style>
         :root {
             --color-primary: #348888;
@@ -34,7 +35,7 @@
         .header {
             background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
             color: var(--text-light);
-            padding: 20px 0;
+            padding: 15px 0;
             margin-bottom: 20px;
             box-shadow: 0 4px 12px rgba(52, 136, 136, 0.3);
             text-align: center;
@@ -52,7 +53,7 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         
         .header h1 {
@@ -306,7 +307,7 @@
             }
             
             .header {
-                padding: 16px 0;
+                padding: 12px 0;
             }
             
             .card-finance {
@@ -317,6 +318,12 @@
             .header-top {
                 flex-direction: column;
                 gap: 8px;
+            }
+            
+            .month-filter {
+                width: 100%;
+                max-width: 200px;
+                margin: 0 auto;
             }
         }
         
@@ -433,6 +440,123 @@
             gap: 6px;
             margin-top: 8px;
         }
+        
+        /* Filtro de mês - DISCRETO */
+        .month-filter {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            max-width: 150px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .month-filter select {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 0.75rem;
+            width: 100%;
+            cursor: pointer;
+            outline: none;
+        }
+        
+        .month-filter select option {
+            color: #333;
+            background: white;
+        }
+        
+        .year-month-card {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            min-height: 250px;
+        }
+        
+        .month-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 10px;
+        }
+        
+        .month-item {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+            color: #333;
+        }
+        
+        .month-item:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.05);
+        }
+        
+        .month-item.active {
+            background: white;
+            color: var(--color-primary);
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+        }
+        
+        .log-item {
+            border-left: 3px solid var(--color-warning);
+            padding: 6px 8px;
+            margin-bottom: 6px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .logs-card {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .year-month-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .year-select-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .year-select-container select {
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 6px;
+            padding: 3px 8px;
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+        }
+        
+        .year-select-container option {
+            color: #333;
+            background: white;
+        }
+        
+        /* Estilo para data atual no card */
+        .current-month-info {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            text-align: center;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -453,10 +577,17 @@
             <div class="header-content">
                 <div class="header-top">
                     <div class="update-info">
-                        <span>🕒 Última atualização: <span id="updateTime">--:--</span></span>
-                        <button class="btn btn-pdf" onclick="exportToPDF()" title="Exportar relatório do mês">
+                        <span>🕒 <span id="updateTime">--:--</span></span>
+                        <button class="btn btn-pdf" onclick="exportToPDF()" title="Exportar relatório">
                             📊 PDF
                         </button>
+                    </div>
+                    <div class="month-filter">
+                        <select id="monthFilter" onchange="filterByMonth(this.value)">
+                            <option value="current" selected>Mês atual</option>
+                            <option value="all">Todos os meses</option>
+                            <!-- Meses serão adicionados dinamicamente -->
+                        </select>
                     </div>
                 </div>
                 <h1>💰 Controle Financeiro</h1>
@@ -467,7 +598,31 @@
 
     <div class="container">
         <!-- Cards em Grid Compacto -->
-        <div class="card-grid">
+        <div class="card-grid" id="mainCardsGrid">
+            <!-- Card de Seleção de Ano/Mês -->
+            <div class="card card-finance year-month-card">
+                <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+                    <span>📅 Selecionar Mês</span>
+                    <div class="year-select-container">
+                        <select id="yearSelect" onchange="updateMonthsGrid()">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                            <option value="2028">2028</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="current-month-info" id="currentMonthInfo">
+                        <!-- Informação do mês atual será exibida aqui -->
+                    </div>
+                    <div class="month-grid" id="monthsGrid">
+                        <!-- Meses serão gerados dinamicamente -->
+                    </div>
+                </div>
+            </div>
+
             <!-- Card 1: Salário Líquido -->
             <div class="card card-finance">
                 <div class="card-header card-header-custom">
@@ -827,10 +982,25 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Card 10: Logs do Sistema -->
+            <div class="card card-finance logs-card">
+                <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+                    <span>📝 Logs do Sistema</span>
+                    <button class="btn btn-sm btn-light" onclick="clearLogs()" title="Limpar logs">
+                        <small>Limpar</small>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="log-container" id="logsContainer">
+                        <!-- Logs serão exibidos aqui -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Modais -->
+    <!-- Modais (mantidos do código original) -->
     <!-- Modal Editar Financiamento Apartamento -->
     <div class="modal fade" id="editApartmentModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
@@ -1073,6 +1243,11 @@
             }
         };
 
+        // Sistema de logs
+        let systemLogs = [];
+        let currentMonthFilter = 'current';
+        let selectedMonthYear = null;
+
         // Inicializar a aplicação
         document.addEventListener('DOMContentLoaded', function() {
             // Configurar data atual nos modais
@@ -1083,9 +1258,14 @@
             // Carregar dados do Firebase em tempo real
             setupRealtimeListeners();
             
-            // Atualizar interface inicial
-            updateAllDisplays();
-            updateResumo();
+            // Inicializar grid de meses
+            updateMonthsGrid();
+            
+            // Atualizar opções do filtro de mês
+            updateMonthFilterOptions();
+            
+            // Atualizar informação do mês atual
+            updateCurrentMonthInfo();
             
             // Esconder loading após carregar
             setTimeout(() => {
@@ -1095,7 +1275,208 @@
             // Atualizar hora
             updateTime();
             setInterval(updateTime, 60000);
+            
+            // Adicionar log inicial
+            addLog('Sistema', 'Aplicação iniciada', 'info');
         });
+
+        // Sistema de logs
+        function addLog(category, message, type = 'info') {
+            const now = new Date();
+            const logEntry = {
+                timestamp: now.toISOString(),
+                date: now.toLocaleDateString('pt-BR'),
+                time: now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
+                monthYear: now.toISOString().substring(0, 7), // YYYY-MM
+                category: category,
+                message: message,
+                type: type
+            };
+            
+            systemLogs.unshift(logEntry); // Adiciona no início
+            systemLogs = systemLogs.slice(0, 50); // Mantém apenas os últimos 50 logs
+            
+            // Atualizar exibição
+            renderLogs();
+            
+            // Log no console
+            console.log(`[${logEntry.date} ${logEntry.time}] ${category}: ${message}`);
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('logsContainer');
+            if (!container) return;
+            
+            let html = '';
+            
+            // Filtrar logs se necessário
+            let filteredLogs = systemLogs;
+            if (currentMonthFilter !== 'all' && currentMonthFilter !== 'current') {
+                filteredLogs = systemLogs.filter(log => log.monthYear === currentMonthFilter);
+            }
+            
+            if (filteredLogs.length === 0) {
+                html = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhum log registrado</p>';
+            } else {
+                filteredLogs.forEach(log => {
+                    const typeClass = log.type === 'success' ? 'border-success' : 
+                                     log.type === 'warning' ? 'border-warning' : 
+                                     log.type === 'danger' ? 'border-danger' : 'border-info';
+                    
+                    html += `
+                        <div class="log-item ${typeClass}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div style="flex: 1;">
+                                    <strong style="font-size: 0.75rem;">${log.category}</strong>
+                                    <div style="font-size: 0.7rem;">${log.message}</div>
+                                </div>
+                                <div style="font-size: 0.7rem; color: #666; white-space: nowrap;">
+                                    ${log.time}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function clearLogs() {
+            if (confirm('Limpar todos os logs?')) {
+                systemLogs = [];
+                renderLogs();
+                addLog('Sistema', 'Logs limpos', 'warning');
+            }
+        }
+
+        // Filtro por mês
+        function filterByMonth(monthValue) {
+            currentMonthFilter = monthValue;
+            
+            if (monthValue === 'current') {
+                // Mostrar dados do mês atual
+                renderCreditCard();
+                renderGeneralExpenses();
+                updateResumo();
+                addLog('Filtro', 'Exibindo dados do mês atual', 'info');
+            } else if (monthValue === 'all') {
+                // Mostrar todos os dados
+                renderCreditCardAll();
+                renderGeneralExpensesAll();
+                updateResumo();
+                addLog('Filtro', 'Exibindo dados de todos os meses', 'info');
+            } else {
+                // Filtrar por mês específico
+                renderCreditCardByMonth(monthValue);
+                renderGeneralExpensesByMonth(monthValue);
+                updateResumo();
+                addLog('Filtro', `Exibindo dados de ${monthValue}`, 'info');
+            }
+            
+            renderLogs();
+        }
+
+        // Atualizar opções do filtro de mês
+        function updateMonthFilterOptions() {
+            const select = document.getElementById('monthFilter');
+            const currentYear = new Date().getFullYear();
+            const currentMonth = new Date().getMonth();
+            
+            // Manter as opções existentes (current e all)
+            while (select.options.length > 2) {
+                select.remove(2);
+            }
+            
+            // Adicionar opções para os próximos 5 anos
+            for (let year = currentYear; year <= currentYear + 5; year++) {
+                for (let month = 0; month < 12; month++) {
+                    // Para o ano atual, começar do mês atual
+                    if (year === currentYear && month < currentMonth) {
+                        continue;
+                    }
+                    
+                    const monthNumber = (month + 1).toString().padStart(2, '0');
+                    const monthYear = `${year}-${monthNumber}`;
+                    const monthName = getMonthName(month);
+                    
+                    const option = document.createElement('option');
+                    option.value = monthYear;
+                    option.textContent = `${monthName} ${year}`;
+                    select.appendChild(option);
+                }
+            }
+        }
+
+        function getMonthName(monthIndex) {
+            const months = [
+                'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+            ];
+            return months[monthIndex];
+        }
+
+        function getShortMonthName(monthIndex) {
+            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            return months[monthIndex];
+        }
+
+        // Atualizar informação do mês atual
+        function updateCurrentMonthInfo() {
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth();
+            const currentYear = currentDate.getFullYear();
+            const monthName = getMonthName(currentMonth);
+            
+            document.getElementById('currentMonthInfo').textContent = 
+                `Mês atual: ${monthName} ${currentYear}`;
+        }
+
+        // Card de seleção de ano/mês
+        function updateMonthsGrid() {
+            const year = document.getElementById('yearSelect').value;
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+            const currentMonth = currentDate.getMonth();
+            const currentMonthYear = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}`;
+            
+            let html = '';
+            for (let month = 0; month < 12; month++) {
+                const monthNumber = (month + 1).toString().padStart(2, '0');
+                const monthYear = `${year}-${monthNumber}`;
+                const isCurrent = monthYear === currentMonthYear;
+                const isSelected = monthYear === selectedMonthYear;
+                const monthName = getShortMonthName(month);
+                
+                html += `
+                    <div class="month-item ${isCurrent ? 'active' : ''} ${isSelected ? 'active' : ''}" 
+                          onclick="selectAndLoadMonth('${monthYear}', '${monthName} ${year}')">
+                        ${monthName}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('monthsGrid').innerHTML = html;
+            
+            // Se nenhum mês estiver selecionado, selecionar o mês atual se for o ano atual
+            if (!selectedMonthYear && year == currentYear) {
+                selectAndLoadMonth(currentMonthYear, getMonthName(currentMonth) + ' ' + currentYear);
+            }
+        }
+
+        function selectAndLoadMonth(monthYear, displayName) {
+            selectedMonthYear = monthYear;
+            updateMonthsGrid();
+            
+            // Atualizar o filtro
+            document.getElementById('monthFilter').value = monthYear;
+            
+            // Carregar dados do mês selecionado automaticamente
+            filterByMonth(monthYear);
+            
+            addLog('Seleção', `Mês ${monthYear} carregado`, 'info');
+            showToast(`Mês ${displayName} carregado`, 'success');
+        }
 
         // Configurar listeners em tempo real
         function setupRealtimeListeners() {
@@ -1148,7 +1529,13 @@
             database.ref('creditCard').on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     financialData.creditCard = snapshot.val();
-                    renderCreditCard();
+                    if (currentMonthFilter === 'current') {
+                        renderCreditCard();
+                    } else if (currentMonthFilter === 'all') {
+                        renderCreditCardAll();
+                    } else {
+                        renderCreditCardByMonth(currentMonthFilter);
+                    }
                     updateResumo();
                 }
             });
@@ -1157,7 +1544,13 @@
             database.ref('generalExpenses').on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     financialData.generalExpenses = snapshot.val();
-                    renderGeneralExpenses();
+                    if (currentMonthFilter === 'current') {
+                        renderGeneralExpenses();
+                    } else if (currentMonthFilter === 'all') {
+                        renderGeneralExpensesAll();
+                    } else {
+                        renderGeneralExpensesByMonth(currentMonthFilter);
+                    }
                     updateResumo();
                 }
             });
@@ -1190,6 +1583,9 @@
             
             saveToFirebase('salary', financialData.salary);
             showToast('Salário salvo com sucesso!', 'success');
+            
+            // Log
+            addLog('Salário', `Salário atualizado: R$ ${formatCurrency(baseValue)} + Extra: R$ ${formatCurrency(extraValue)}`, 'success');
         }
 
         function updateSalaryDisplay() {
@@ -1257,6 +1653,10 @@
                 apt.paidInstallments++;
                 saveToFirebase('apartment', apt);
                 showToast('Parcela registrada!', 'success');
+                
+                // Log
+                const currentMonth = new Date().toISOString().substring(0, 7);
+                addLog('Apartamento', `Parcela paga - Mês: ${currentMonth} - Total: ${apt.paidInstallments + (apt.amortizedInstallments || 0)}/${apt.totalInstallments}`, 'success');
             } else {
                 showToast('Todas as parcelas já foram pagas!', 'info');
             }
@@ -1267,17 +1667,17 @@
             const effectivePaid = apt.paidInstallments + (apt.amortizedInstallments || 0);
             
             if (effectivePaid > 0) {
-                // Primeiro tenta retornar das parcelas pagas
                 if (apt.paidInstallments > 0) {
                     apt.paidInstallments--;
-                } 
-                // Se não há parcelas pagas, retorna das amortizadas
-                else if (apt.amortizedInstallments > 0) {
+                } else if (apt.amortizedInstallments > 0) {
                     apt.amortizedInstallments--;
                 }
                 
                 saveToFirebase('apartment', apt);
                 showToast('Parcela retornada!', 'warning');
+                
+                // Log
+                addLog('Apartamento', `Parcela retornada - Total: ${apt.paidInstallments + (apt.amortizedInstallments || 0)}/${apt.totalInstallments}`, 'warning');
             } else {
                 showToast('Não há parcelas para retornar!', 'info');
             }
@@ -1303,6 +1703,9 @@
             saveToFirebase('apartment', apt);
             document.getElementById('amortizeApartment').value = '';
             showToast(`${amortizeQty} parcelas amortizadas!`, 'success');
+            
+            // Log
+            addLog('Apartamento', `${amortizeQty} parcelas amortizadas - Total amortizado: ${apt.amortizedInstallments}`, 'success');
         }
 
         function showEditApartmentModal() {
@@ -1321,6 +1724,9 @@
             saveToFirebase('apartment', financialData.apartment);
             bootstrap.Modal.getInstance(document.getElementById('editApartmentModal')).hide();
             showToast('Financiamento atualizado!', 'success');
+            
+            // Log
+            addLog('Apartamento', `Dados atualizados: ${financialData.apartment.paidInstallments}/${financialData.apartment.totalInstallments} parcelas`, 'info');
         }
 
         // Funções para a Entrada do Apartamento
@@ -1371,6 +1777,10 @@
                 entry.paidInstallments++;
                 saveToFirebase('entry', entry);
                 showToast('Parcela registrada!', 'success');
+                
+                // Log
+                const currentMonth = new Date().toISOString().substring(0, 7);
+                addLog('Entrada', `Parcela paga - Mês: ${currentMonth} - Total: ${entry.paidInstallments + (entry.amortizedInstallments || 0)}/${entry.totalInstallments}`, 'success');
             } else {
                 showToast('Todas as parcelas já foram pagas!', 'info');
             }
@@ -1381,17 +1791,17 @@
             const effectivePaid = entry.paidInstallments + (entry.amortizedInstallments || 0);
             
             if (effectivePaid > 0) {
-                // Primeiro tenta retornar das parcelas pagas
                 if (entry.paidInstallments > 0) {
                     entry.paidInstallments--;
-                } 
-                // Se não há parcelas pagas, retorna das amortizadas
-                else if (entry.amortizedInstallments > 0) {
+                } else if (entry.amortizedInstallments > 0) {
                     entry.amortizedInstallments--;
                 }
                 
                 saveToFirebase('entry', entry);
                 showToast('Parcela retornada!', 'warning');
+                
+                // Log
+                addLog('Entrada', `Parcela retornada - Total: ${entry.paidInstallments + (entry.amortizedInstallments || 0)}/${entry.totalInstallments}`, 'warning');
             } else {
                 showToast('Não há parcelas para retornar!', 'info');
             }
@@ -1442,6 +1852,10 @@
                 car.paidInstallments++;
                 saveToFirebase('car', car);
                 showToast('Parcela registrada!', 'success');
+                
+                // Log
+                const currentMonth = new Date().toISOString().substring(0, 7);
+                addLog('Carro', `Parcela paga - Mês: ${currentMonth} - Total: ${car.paidInstallments + (car.amortizedInstallments || 0)}/${car.totalInstallments}`, 'success');
             } else {
                 showToast('Todas as parcelas já foram pagas!', 'info');
             }
@@ -1452,17 +1866,17 @@
             const effectivePaid = car.paidInstallments + (car.amortizedInstallments || 0);
             
             if (effectivePaid > 0) {
-                // Primeiro tenta retornar das parcelas pagas
                 if (car.paidInstallments > 0) {
                     car.paidInstallments--;
-                } 
-                // Se não há parcelas pagas, retorna das amortizadas
-                else if (car.amortizedInstallments > 0) {
+                } else if (car.amortizedInstallments > 0) {
                     car.amortizedInstallments--;
                 }
                 
                 saveToFirebase('car', car);
                 showToast('Parcela retornada!', 'warning');
+                
+                // Log
+                addLog('Carro', `Parcela retornada - Total: ${car.paidInstallments + (car.amortizedInstallments || 0)}/${car.totalInstallments}`, 'warning');
             } else {
                 showToast('Não há parcelas para retornar!', 'info');
             }
@@ -1488,6 +1902,9 @@
             saveToFirebase('car', car);
             document.getElementById('amortizeCar').value = '';
             showToast(`${amortizeQty} parcelas amortizadas!`, 'success');
+            
+            // Log
+            addLog('Carro', `${amortizeQty} parcelas amortizadas - Total amortizado: ${car.amortizedInstallments}`, 'success');
         }
 
         function showEditCarModal() {
@@ -1541,6 +1958,9 @@
             saveToFirebase('expenses', financialData.expenses);
             bootstrap.Modal.getInstance(document.getElementById('editExpensesModal')).hide();
             showToast('Despesas atualizadas!', 'success');
+            
+            // Log
+            addLog('Despesas Apto', `Despesas atualizadas: Cond R$ ${formatCurrency(financialData.expenses.condominium)}, Água R$ ${formatCurrency(financialData.expenses.water)}`, 'info');
         }
 
         // Funções para Empréstimos
@@ -1575,6 +1995,9 @@
             
             bootstrap.Modal.getInstance(document.getElementById('addLoanModal')).hide();
             showToast('Empréstimo adicionado!', 'success');
+            
+            // Log
+            addLog('Empréstimo', `Novo empréstimo: ${name} - R$ ${formatCurrency(monthly)}/mês`, 'success');
         }
 
         function renderLoans() {
@@ -1637,6 +2060,10 @@
                 loan.paidInstallments++;
                 saveToFirebase('loans', financialData.loans);
                 showToast('Parcela do empréstimo paga!', 'success');
+                
+                // Log
+                const currentMonth = new Date().toISOString().substring(0, 7);
+                addLog('Empréstimo', `Parcela paga: ${loan.name} - Mês: ${currentMonth} - Total: ${loan.paidInstallments + (loan.amortizedInstallments || 0)}/${loan.totalInstallments}`, 'success');
             } else {
                 showToast('Todas as parcelas já foram pagas!', 'info');
             }
@@ -1695,13 +2122,22 @@
             saveToFirebase('loans', financialData.loans);
             bootstrap.Modal.getInstance(document.getElementById('editLoanModal')).hide();
             showToast('Empréstimo atualizado!', 'success');
+            
+            // Log
+            addLog('Empréstimo', `Empréstimo atualizado: ${loan.name} - ${loan.paidInstallments}/${loan.totalInstallments}`, 'info');
         }
 
         function deleteLoan(loanId) {
             if (confirm('Excluir este empréstimo?')) {
+                const loan = financialData.loans.find(l => l.id === loanId);
                 financialData.loans = financialData.loans.filter(l => l.id !== loanId);
                 saveToFirebase('loans', financialData.loans);
                 showToast('Empréstimo excluído!', 'info');
+                
+                // Log
+                if (loan) {
+                    addLog('Empréstimo', `Empréstimo excluído: ${loan.name}`, 'warning');
+                }
             }
         }
 
@@ -1733,11 +2169,20 @@
             
             bootstrap.Modal.getInstance(document.getElementById('addCreditExpenseModal')).hide();
             showToast('Despesa adicionada!', 'success');
+            
+            // Log
+            addLog('Cartão', `Nova despesa: ${name} - R$ ${formatCurrency(amount)} - ${date}`, 'info');
         }
 
         function renderCreditCard() {
             const container = document.getElementById('creditCardContainer');
             const currentMonth = new Date().toISOString().substring(0, 7);
+            
+            return renderCreditCardByMonth(currentMonth);
+        }
+
+        function renderCreditCardByMonth(monthYear) {
+            const container = document.getElementById('creditCardContainer');
             
             if (!financialData.creditCard || financialData.creditCard.length === 0) {
                 container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>';
@@ -1745,20 +2190,20 @@
                 return;
             }
             
-            // Filtrar despesas do mês atual
-            const currentMonthExpenses = financialData.creditCard.filter(e => e.date && e.date.substring(0, 7) === currentMonth);
-            const total = currentMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            // Filtrar despesas do mês especificado
+            const monthExpenses = financialData.creditCard.filter(e => e.date && e.date.substring(0, 7) === monthYear);
+            const total = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
             
             document.getElementById('creditCardTotal').textContent = formatCurrency(total);
             
-            if (currentMonthExpenses.length === 0) {
+            if (monthExpenses.length === 0) {
                 container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>';
                 return;
             }
             
             let html = '';
             
-            currentMonthExpenses.forEach(expense => {
+            monthExpenses.forEach(expense => {
                 html += `
                     <div class="expense-item">
                         <div class="d-flex justify-content-between align-items-center">
@@ -1780,10 +2225,75 @@
             container.innerHTML = html;
         }
 
+        function renderCreditCardAll() {
+            const container = document.getElementById('creditCardContainer');
+            
+            if (!financialData.creditCard || financialData.creditCard.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>';
+                document.getElementById('creditCardTotal').textContent = '0,00';
+                return;
+            }
+            
+            const total = financialData.creditCard.reduce((sum, exp) => sum + exp.amount, 0);
+            document.getElementById('creditCardTotal').textContent = formatCurrency(total);
+            
+            let html = '';
+            
+            // Agrupar por mês
+            const expensesByMonth = {};
+            financialData.creditCard.forEach(expense => {
+                if (!expense.date) return;
+                const month = expense.date.substring(0, 7);
+                if (!expensesByMonth[month]) {
+                    expensesByMonth[month] = [];
+                }
+                expensesByMonth[month].push(expense);
+            });
+            
+            // Ordenar meses do mais recente para o mais antigo
+            const sortedMonths = Object.keys(expensesByMonth).sort().reverse();
+            
+            sortedMonths.forEach(month => {
+                const monthTotal = expensesByMonth[month].reduce((sum, exp) => sum + exp.amount, 0);
+                html += `
+                    <div class="mb-2">
+                        <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-primary); margin-bottom: 4px;">
+                            ${month} - Total: R$ ${formatCurrency(monthTotal)}
+                        </div>
+                `;
+                
+                expensesByMonth[month].forEach(expense => {
+                    html += `
+                        <div class="expense-item" style="margin-left: 10px; margin-bottom: 4px;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong style="font-size: 0.8rem;">${expense.name}</strong>
+                                    <div style="font-size: 0.75rem; color: #666;">${expense.date}</div>
+                                </div>
+                                <div>
+                                    <span style="font-weight: 600; color: var(--color-danger); font-size: 0.8rem;">R$ ${formatCurrency(expense.amount)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+
         function deleteCreditExpense(expenseId) {
+            const expense = financialData.creditCard.find(e => e.id === expenseId);
             financialData.creditCard = financialData.creditCard.filter(e => e.id !== expenseId);
             saveToFirebase('creditCard', financialData.creditCard);
             showToast('Despesa excluída!', 'info');
+            
+            // Log
+            if (expense) {
+                addLog('Cartão', `Despesa excluída: ${expense.name} - R$ ${formatCurrency(expense.amount)}`, 'warning');
+            }
         }
 
         // Funções para Despesas Gerais
@@ -1816,11 +2326,20 @@
             
             bootstrap.Modal.getInstance(document.getElementById('addExpenseModal')).hide();
             showToast('Despesa adicionada!', 'success');
+            
+            // Log
+            addLog('Despesas', `Nova despesa: ${name} - R$ ${formatCurrency(amount)} - ${date}`, 'info');
         }
 
         function renderGeneralExpenses() {
             const container = document.getElementById('expensesContainer');
             const currentMonth = new Date().toISOString().substring(0, 7);
+            
+            return renderGeneralExpensesByMonth(currentMonth);
+        }
+
+        function renderGeneralExpensesByMonth(monthYear) {
+            const container = document.getElementById('expensesContainer');
             
             if (!financialData.generalExpenses || financialData.generalExpenses.length === 0) {
                 container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>';
@@ -1828,20 +2347,20 @@
                 return;
             }
             
-            // Filtrar despesas do mês atual
-            const currentMonthExpenses = financialData.generalExpenses.filter(e => e.date && e.date.substring(0, 7) === currentMonth);
-            const total = currentMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            // Filtrar despesas do mês especificado
+            const monthExpenses = financialData.generalExpenses.filter(e => e.date && e.date.substring(0, 7) === monthYear);
+            const total = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
             
             document.getElementById('expensesTotal').textContent = formatCurrency(total);
             
-            if (currentMonthExpenses.length === 0) {
+            if (monthExpenses.length === 0) {
                 container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>';
                 return;
             }
             
             let html = '';
             
-            currentMonthExpenses.forEach(expense => {
+            monthExpenses.forEach(expense => {
                 const categoryNames = {
                     'alimentacao': '🍔',
                     'transporte': '🚗',
@@ -1873,10 +2392,85 @@
             container.innerHTML = html;
         }
 
+        function renderGeneralExpensesAll() {
+            const container = document.getElementById('expensesContainer');
+            
+            if (!financialData.generalExpenses || financialData.generalExpenses.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>';
+                document.getElementById('expensesTotal').textContent = '0,00';
+                return;
+            }
+            
+            const total = financialData.generalExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            document.getElementById('expensesTotal').textContent = formatCurrency(total);
+            
+            let html = '';
+            
+            // Agrupar por mês
+            const expensesByMonth = {};
+            financialData.generalExpenses.forEach(expense => {
+                if (!expense.date) return;
+                const month = expense.date.substring(0, 7);
+                if (!expensesByMonth[month]) {
+                    expensesByMonth[month] = [];
+                }
+                expensesByMonth[month].push(expense);
+            });
+            
+            // Ordenar meses do mais recente para o mais antigo
+            const sortedMonths = Object.keys(expensesByMonth).sort().reverse();
+            
+            sortedMonths.forEach(month => {
+                const monthTotal = expensesByMonth[month].reduce((sum, exp) => sum + exp.amount, 0);
+                html += `
+                    <div class="mb-2">
+                        <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-primary); margin-bottom: 4px;">
+                            ${month} - Total: R$ ${formatCurrency(monthTotal)}
+                        </div>
+                `;
+                
+                expensesByMonth[month].forEach(expense => {
+                    const categoryNames = {
+                        'alimentacao': '🍔',
+                        'transporte': '🚗',
+                        'lazer': '🎮',
+                        'saude': '🏥',
+                        'outros': '📦'
+                    };
+                    
+                    html += `
+                        <div class="expense-item" style="margin-left: 10px; margin-bottom: 4px;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong style="font-size: 0.8rem;">${expense.name}</strong>
+                                    <div style="font-size: 0.75rem; color: #666;">
+                                        ${categoryNames[expense.category] || ''} ${expense.date}
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="font-weight: 600; color: var(--color-warning); font-size: 0.8rem;">R$ ${formatCurrency(expense.amount)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+
         function deleteGeneralExpense(expenseId) {
+            const expense = financialData.generalExpenses.find(e => e.id === expenseId);
             financialData.generalExpenses = financialData.generalExpenses.filter(e => e.id !== expenseId);
             saveToFirebase('generalExpenses', financialData.generalExpenses);
             showToast('Despesa excluída!', 'info');
+            
+            // Log
+            if (expense) {
+                addLog('Despesas', `Despesa excluída: ${expense.name} - R$ ${formatCurrency(expense.amount)}`, 'warning');
+            }
         }
 
         // Resumo Financeiro
@@ -1899,16 +2493,37 @@
                 return effectivePaid < loan.totalInstallments ? sum + loan.monthlyPayment : sum;
             }, 0);
             
-            // Cartão de crédito (mês atual)
-            const currentMonth = new Date().toISOString().substring(0, 7);
-            const creditCardTotal = (financialData.creditCard || [])
-                .filter(e => e.date && e.date.substring(0, 7) === currentMonth)
-                .reduce((sum, exp) => sum + exp.amount, 0);
+            // Cartão de crédito (baseado no filtro atual)
+            let creditCardTotal = 0;
+            if (currentMonthFilter === 'current') {
+                const currentMonth = new Date().toISOString().substring(0, 7);
+                creditCardTotal = (financialData.creditCard || [])
+                    .filter(e => e.date && e.date.substring(0, 7) === currentMonth)
+                    .reduce((sum, exp) => sum + exp.amount, 0);
+            } else if (currentMonthFilter === 'all') {
+                creditCardTotal = (financialData.creditCard || [])
+                    .reduce((sum, exp) => sum + exp.amount, 0);
+            } else {
+                creditCardTotal = (financialData.creditCard || [])
+                    .filter(e => e.date && e.date.substring(0, 7) === currentMonthFilter)
+                    .reduce((sum, exp) => sum + exp.amount, 0);
+            }
             
-            // Despesas gerais (mês atual)
-            const expensesTotal = (financialData.generalExpenses || [])
-                .filter(e => e.date && e.date.substring(0, 7) === currentMonth)
-                .reduce((sum, exp) => sum + exp.amount, 0);
+            // Despesas gerais (baseado no filtro atual)
+            let expensesTotal = 0;
+            if (currentMonthFilter === 'current') {
+                const currentMonth = new Date().toISOString().substring(0, 7);
+                expensesTotal = (financialData.generalExpenses || [])
+                    .filter(e => e.date && e.date.substring(0, 7) === currentMonth)
+                    .reduce((sum, exp) => sum + exp.amount, 0);
+            } else if (currentMonthFilter === 'all') {
+                expensesTotal = (financialData.generalExpenses || [])
+                    .reduce((sum, exp) => sum + exp.amount, 0);
+            } else {
+                expensesTotal = (financialData.generalExpenses || [])
+                    .filter(e => e.date && e.date.substring(0, 7) === currentMonthFilter)
+                    .reduce((sum, exp) => sum + exp.amount, 0);
+            }
             
             // Total geral
             const totalGeral = aptTotal + carTotal + loansTotal + creditCardTotal + expensesTotal;
@@ -1965,38 +2580,43 @@
             }
         }
 
-        // Função para exportar PDF
+        // Função para exportar PDF - CORRIGIDA (problema com acentos)
         function exportToPDF() {
             showToast('Gerando relatório...', 'info');
             
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+            const doc = new jsPDF('p', 'mm', 'a4');
+            
+            // Configurar fonte padrão (helvetica suporta acentos)
+            doc.setFont('helvetica');
+            
             const currentDate = new Date();
             const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
                               "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
             
             const month = monthNames[currentDate.getMonth()];
             const year = currentDate.getFullYear();
+            const pageWidth = doc.internal.pageSize.width;
             
             // Cabeçalho
             doc.setFillColor(52, 136, 136);
-            doc.rect(0, 0, 210, 25, 'F');
+            doc.rect(0, 0, pageWidth, 25, 'F');
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(18);
-            doc.text('Relatório Financeiro', 105, 12, { align: 'center' });
-            doc.setFontSize(10);
-            doc.text(`${month}/${year}`, 105, 19, { align: 'center' });
+            doc.setFontSize(20);
+            doc.text('Relatório Financeiro', pageWidth / 2, 12, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text(`${month}/${year}`, pageWidth / 2, 20, { align: 'center' });
             
             doc.setTextColor(0, 0, 0);
             let yPosition = 35;
             
-            // Seção 1: Resumo
-            doc.setFontSize(14);
+            // Seção 1: Resumo Financeiro
+            doc.setFontSize(16);
             doc.setTextColor(52, 136, 136);
-            doc.text('📊 RESUMO', 10, yPosition);
-            yPosition += 8;
+            doc.text('RESUMO FINANCEIRO', 14, yPosition);
+            yPosition += 10;
             
-            doc.setFontSize(10);
+            doc.setFontSize(11);
             doc.setTextColor(0, 0, 0);
             
             // Calcular valores
@@ -2015,11 +2635,11 @@
             }, 0);
             
             const currentMonth = new Date().toISOString().substring(0, 7);
-            const creditCardTotal = (financialData.creditCard || [])
+            let creditCardTotal = (financialData.creditCard || [])
                 .filter(e => e.date && e.date.substring(0, 7) === currentMonth)
                 .reduce((sum, exp) => sum + exp.amount, 0);
             
-            const expensesTotal = (financialData.generalExpenses || [])
+            let expensesTotal = (financialData.generalExpenses || [])
                 .filter(e => e.date && e.date.substring(0, 7) === currentMonth)
                 .reduce((sum, exp) => sum + exp.amount, 0);
             
@@ -2027,95 +2647,184 @@
             const salary = financialData.salary?.total || 0;
             const balance = salary - totalGeral;
             
-            // Itens
-            const items = [
-                [`Apartamento`, `R$ ${formatCurrency(aptTotal)}`],
-                [`Carro`, `R$ ${formatCurrency(carTotal)}`],
-                [`Empréstimos`, `R$ ${formatCurrency(loansTotal)}`],
-                [`Cartão`, `R$ ${formatCurrency(creditCardTotal)}`],
-                [`Outras`, `R$ ${formatCurrency(expensesTotal)}`]
+            // Tabela de Resumo
+            const summaryData = [
+                ['Apartamento', `R$ ${formatCurrency(aptTotal)}`],
+                ['Carro', `R$ ${formatCurrency(carTotal)}`],
+                ['Empréstimos', `R$ ${formatCurrency(loansTotal)}`],
+                ['Cartão de Crédito', `R$ ${formatCurrency(creditCardTotal)}`],
+                ['Outras Despesas', `R$ ${formatCurrency(expensesTotal)}`],
+                ['TOTAL MENSAL', `R$ ${formatCurrency(totalGeral)}`]
             ];
             
-            items.forEach(([label, value]) => {
-                doc.text(label, 15, yPosition);
-                doc.text(value, 180, yPosition, { align: 'right' });
-                yPosition += 6;
-            });
-            
-            // Linha
-            yPosition += 4;
-            doc.setDrawColor(52, 136, 136);
-            doc.line(15, yPosition, 195, yPosition);
-            yPosition += 7;
-            
-            // Total
-            doc.setFontSize(12);
-            doc.setTextColor(242, 68, 5);
-            doc.text('TOTAL MENSAL', 15, yPosition);
-            doc.text(`R$ ${formatCurrency(totalGeral)}`, 180, yPosition, { align: 'right' });
-            yPosition += 12;
-            
-            // Salário e Saldo
             if (salary > 0) {
-                doc.setFontSize(11);
-                doc.setTextColor(52, 136, 136);
-                doc.text('💰 SALÁRIO', 10, yPosition);
-                yPosition += 8;
-                
-                doc.setFontSize(10);
-                doc.setTextColor(0, 0, 0);
-                
-                doc.text('Salário Total', 15, yPosition);
-                doc.text(`R$ ${formatCurrency(salary)}`, 180, yPosition, { align: 'right' });
-                yPosition += 6;
-                
-                doc.setFontSize(11);
-                if (balance > 0) {
-                    doc.setTextColor(34, 186, 187);
-                    doc.text('SALDO POSITIVO', 15, yPosition);
-                    doc.text(`R$ ${formatCurrency(balance)}`, 180, yPosition, { align: 'right' });
-                } else if (balance < 0) {
-                    doc.setTextColor(242, 68, 5);
-                    doc.text('SALDO NEGATIVO', 15, yPosition);
-                    doc.text(`R$ ${formatCurrency(Math.abs(balance))}`, 180, yPosition, { align: 'right' });
-                } else {
-                    doc.setTextColor(52, 136, 136);
-                    doc.text('SALDO EQUILIBRADO', 15, yPosition);
-                    doc.text(`R$ ${formatCurrency(balance)}`, 180, yPosition, { align: 'right' });
-                }
-                yPosition += 12;
+                summaryData.push(['Salário Total', `R$ ${formatCurrency(salary)}`]);
+                summaryData.push(['Saldo Final', `R$ ${formatCurrency(balance)}`]);
             }
             
-            // Seção 2: Detalhes
-            if (yPosition > 250) doc.addPage();
+            doc.autoTable({
+                startY: yPosition,
+                head: [['Categoria', 'Valor']],
+                body: summaryData,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [52, 136, 136],
+                    textColor: [255, 255, 255],
+                    fontSize: 11
+                },
+                bodyStyles: { fontSize: 10 },
+                columnStyles: {
+                    0: { cellWidth: 120 },
+                    1: { cellWidth: 60, halign: 'right' }
+                },
+                margin: { left: 14, right: 14 }
+            });
             
-            doc.setFontSize(14);
+            yPosition = doc.lastAutoTable.finalY + 15;
+            
+            // Verificar se precisa de nova página
+            if (yPosition > 240) {
+                doc.addPage();
+                yPosition = 20;
+            }
+            
+            // Seção 2: Detalhes dos Financiamentos
+            doc.setFontSize(16);
             doc.setTextColor(52, 136, 136);
-            doc.text('🏠 DETALHES', 10, 30);
-            yPosition = 38;
+            doc.text('DETALHES DOS FINANCIAMENTOS', 14, yPosition);
+            yPosition += 10;
             
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
+            const aptEffectivePaid = financialData.apartment.paidInstallments + (financialData.apartment.amortizedInstallments || 0);
+            const entryEffectivePaid = financialData.entry.paidInstallments + (financialData.entry.amortizedInstallments || 0);
+            const carEffectivePaid = financialData.car.paidInstallments + (financialData.car.amortizedInstallments || 0);
             
-            const aptDetails = [
-                [`Financiamento (${financialData.apartment.paidInstallments + (financialData.apartment.amortizedInstallments || 0)}/${financialData.apartment.totalInstallments})`, `R$ ${formatCurrency(aptFinancing * financialData.apartment.totalInstallments)}`],
-                [`Entrada (${financialData.entry.paidInstallments + (financialData.entry.amortizedInstallments || 0)}/${financialData.entry.totalInstallments})`, `R$ ${formatCurrency(entryFinancing * financialData.entry.totalInstallments)}`],
-                [`Carro (${financialData.car.paidInstallments + (financialData.car.amortizedInstallments || 0)}/${financialData.car.totalInstallments})`, `R$ ${formatCurrency(carTotal * financialData.car.totalInstallments)}`]
+            const financingData = [
+                ['Apartamento (Principal)', 
+                 `${aptEffectivePaid}/${financialData.apartment.totalInstallments}`, 
+                 `R$ ${formatCurrency(financialData.apartment.installmentValue)}`,
+                 `R$ ${formatCurrency(financialData.apartment.installmentValue * financialData.apartment.totalInstallments)}`],
+                ['Entrada do Apartamento', 
+                 `${entryEffectivePaid}/${financialData.entry.totalInstallments}`, 
+                 `R$ ${formatCurrency(financialData.entry.installmentValue)}`,
+                 `R$ ${formatCurrency(financialData.entry.installmentValue * financialData.entry.totalInstallments)}`],
+                ['Carro', 
+                 `${carEffectivePaid}/${financialData.car.totalInstallments}`, 
+                 `R$ ${formatCurrency(financialData.car.installmentValue)}`,
+                 `R$ ${formatCurrency(financialData.car.installmentValue * financialData.car.totalInstallments)}`]
             ];
             
-            aptDetails.forEach(([label, value]) => {
-                doc.text(label, 15, yPosition);
-                doc.text(value, 180, yPosition, { align: 'right' });
-                yPosition += 6;
+            doc.autoTable({
+                startY: yPosition,
+                head: [['Financiamento', 'Parcelas', 'Valor Mensal', 'Total']],
+                body: financingData,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [52, 136, 136],
+                    textColor: [255, 255, 255],
+                    fontSize: 11
+                },
+                bodyStyles: { fontSize: 10 },
+                columnStyles: {
+                    0: { cellWidth: 70 },
+                    1: { cellWidth: 40, halign: 'center' },
+                    2: { cellWidth: 40, halign: 'right' },
+                    3: { cellWidth: 40, halign: 'right' }
+                },
+                margin: { left: 14, right: 14 }
             });
+            
+            yPosition = doc.lastAutoTable.finalY + 15;
+            
+            // Verificar se precisa de nova página
+            if (yPosition > 240) {
+                doc.addPage();
+                yPosition = 20;
+            }
+            
+            // Seção 3: Despesas do Apartamento
+            doc.setFontSize(16);
+            doc.setTextColor(52, 136, 136);
+            doc.text('DESPESAS DO APARTAMENTO', 14, yPosition);
+            yPosition += 10;
+            
+            const aptExpensesData = [
+                ['Condomínio', `R$ ${formatCurrency(financialData.expenses.condominium)}`],
+                ['Água', `R$ ${formatCurrency(financialData.expenses.water)}`],
+                ['Energia', `R$ ${formatCurrency(financialData.expenses.energy)}`],
+                ['Gás', `R$ ${formatCurrency(financialData.expenses.gas)}`],
+                ['TOTAL DESPESAS', `R$ ${formatCurrency(aptExpenses)}`]
+            ];
+            
+            doc.autoTable({
+                startY: yPosition,
+                head: [['Despesa', 'Valor Mensal']],
+                body: aptExpensesData,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [52, 136, 136],
+                    textColor: [255, 255, 255],
+                    fontSize: 11
+                },
+                bodyStyles: { fontSize: 10 },
+                columnStyles: {
+                    0: { cellWidth: 120 },
+                    1: { cellWidth: 60, halign: 'right' }
+                },
+                margin: { left: 14, right: 14 }
+            });
+            
+            yPosition = doc.lastAutoTable.finalY + 15;
+            
+            // Seção 4: Empréstimos (se houver)
+            if (financialData.loans && financialData.loans.length > 0) {
+                if (yPosition > 200) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
+                
+                doc.setFontSize(16);
+                doc.setTextColor(52, 136, 136);
+                doc.text('EMPRÉSTIMOS', 14, yPosition);
+                yPosition += 10;
+                
+                const loansData = financialData.loans.map(loan => {
+                    const effectivePaid = loan.paidInstallments + (loan.amortizedInstallments || 0);
+                    return [
+                        loan.name,
+                        `${effectivePaid}/${loan.totalInstallments}`,
+                        `R$ ${formatCurrency(loan.monthlyPayment)}`,
+                        `R$ ${formatCurrency(loan.totalAmount)}`
+                    ];
+                });
+                
+                doc.autoTable({
+                    startY: yPosition,
+                    head: [['Empréstimo', 'Parcelas', 'Valor Mensal', 'Total']],
+                    body: loansData,
+                    theme: 'grid',
+                    headStyles: { 
+                        fillColor: [52, 136, 136],
+                        textColor: [255, 255, 255],
+                        fontSize: 11
+                    },
+                    bodyStyles: { fontSize: 10 },
+                    margin: { left: 14, right: 14 }
+                });
+                
+                yPosition = doc.lastAutoTable.finalY + 15;
+            }
             
             // Rodapé
             doc.setFontSize(9);
             doc.setTextColor(100, 100, 100);
-            doc.text(`Gerado: ${currentDate.toLocaleDateString('pt-BR')} ${currentDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`, 105, 285, { align: 'center' });
+            const footerText = `Gerado em: ${currentDate.toLocaleDateString('pt-BR')} às ${currentDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`;
+            doc.text(footerText, pageWidth / 2, 285, { align: 'center' });
             
-            doc.save(`relatorio-${month.toLowerCase()}-${year}.pdf`);
-            showToast('Relatório gerado!', 'success');
+            doc.save(`relatorio-financeiro-${month.toLowerCase()}-${year}.pdf`);
+            showToast('Relatório gerado com sucesso!', 'success');
+            
+            // Log
+            addLog('Exportação', 'Relatório PDF gerado', 'success');
         }
 
         // Firebase Functions
@@ -2127,6 +2836,7 @@
                 .catch(error => {
                     console.error('Erro ao salvar no Firebase:', error);
                     showToast('Erro ao salvar dados!', 'danger');
+                    addLog('Firebase', `Erro ao salvar em ${path}: ${error.message}`, 'danger');
                 });
         }
 
@@ -2137,9 +2847,21 @@
             updateCarDisplay();
             updateExpensesDisplay();
             renderLoans();
-            renderCreditCard();
-            renderGeneralExpenses();
+            
+            // Usar o filtro atual
+            if (currentMonthFilter === 'current') {
+                renderCreditCard();
+                renderGeneralExpenses();
+            } else if (currentMonthFilter === 'all') {
+                renderCreditCardAll();
+                renderGeneralExpensesAll();
+            } else {
+                renderCreditCardByMonth(currentMonthFilter);
+                renderGeneralExpensesByMonth(currentMonthFilter);
+            }
+            
             updateResumo();
+            renderLogs();
         }
 
         // Utilitários
