@@ -9,6 +9,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- jsPDF para exportar PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
             --color-primary: #348888;
@@ -25,7 +27,7 @@
             background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
             font-family: 'Segoe UI', 'Roboto', sans-serif;
             color: var(--text-dark);
-            padding-bottom: 80px;
+            padding-bottom: 20px;
             min-height: 100vh;
         }
         
@@ -35,66 +37,108 @@
             padding: 20px 0;
             margin-bottom: 20px;
             box-shadow: 0 4px 12px rgba(52, 136, 136, 0.3);
+            text-align: center;
+        }
+        
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 12px;
         }
         
         .header h1 {
-            font-size: 1.8rem;
-            margin-bottom: 5px;
+            font-size: 1.6rem;
+            margin-bottom: 4px;
             font-weight: 700;
         }
         
         .header p {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             opacity: 0.9;
             margin-bottom: 0;
         }
         
+        .update-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+        }
+        
         .card-finance {
-            border-radius: 15px;
+            border-radius: 12px;
             border: none;
             box-shadow: var(--card-shadow);
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             transition: all 0.3s ease;
             height: 100%;
-            min-height: 280px;
+            min-height: 250px;
+            position: relative;
         }
         
         .card-finance:hover {
-            transform: translateY(-3px);
+            transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
         
         .card-header-custom {
             background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
             color: white;
-            border-radius: 15px 15px 0 0 !important;
-            padding: 12px 15px;
+            border-radius: 12px 12px 0 0 !important;
+            padding: 10px 12px;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
         
         .card-body {
-            padding: 15px;
+            padding: 12px;
+        }
+        
+        .card-completed {
+            border: 2px solid var(--color-secondary);
+            background-color: rgba(34, 186, 187, 0.05);
+        }
+        
+        .completed-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: var(--color-secondary);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            z-index: 5;
         }
         
         .progress {
-            height: 8px;
-            margin: 12px 0;
-            border-radius: 4px;
+            height: 6px;
+            margin: 10px 0;
+            border-radius: 3px;
         }
         
         .progress-bar {
-            border-radius: 4px;
+            border-radius: 3px;
         }
         
         .btn-custom-primary {
             background-color: var(--color-primary);
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
             font-weight: 500;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             transition: all 0.3s;
         }
         
@@ -107,10 +151,10 @@
             background-color: var(--color-warning);
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
             font-weight: 500;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             transition: all 0.3s;
         }
         
@@ -118,10 +162,10 @@
             background-color: var(--color-danger);
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
             font-weight: 500;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             transition: all 0.3s;
         }
         
@@ -129,33 +173,56 @@
             background-color: var(--color-primary);
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
             font-weight: 500;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             transition: all 0.3s;
         }
         
+        .btn-pdf {
+            background-color: var(--color-warning);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
         .btn-small {
-            padding: 4px 10px !important;
-            font-size: 0.8rem !important;
-            margin: 2px;
+            padding: 3px 8px !important;
+            font-size: 0.75rem !important;
+            margin: 1px;
         }
         
         .value-display {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: 700;
             color: var(--color-primary);
             text-align: center;
-            margin: 5px 0;
+            margin: 4px 0;
         }
         
         .counter-display {
-            font-size: 1.8rem;
+            font-size: 1.4rem;
             font-weight: 800;
             color: var(--color-secondary);
             text-align: center;
-            margin: 10px 0;
+            margin: 8px 0;
+        }
+        
+        .total-display {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--color-warning);
+            text-align: center;
+            margin: 6px 0;
+            padding: 4px;
+            background-color: rgba(250, 127, 8, 0.1);
+            border-radius: 5px;
         }
         
         .loading-overlay {
@@ -172,45 +239,36 @@
             flex-direction: column;
         }
         
-        .footer {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            background: white;
-            padding: 12px 15px;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-            border-top: 3px solid var(--color-primary);
-            z-index: 100;
-        }
-        
         .expense-item {
-            border-left: 4px solid var(--color-warning);
-            padding-left: 10px;
-            margin-bottom: 10px;
-            padding: 8px;
+            border-left: 3px solid var(--color-warning);
+            padding-left: 8px;
+            margin-bottom: 8px;
+            padding: 6px;
             background: #f8f9fa;
-            border-radius: 5px;
+            border-radius: 4px;
+            font-size: 0.85rem;
         }
         
         .loan-item {
-            border-left: 4px solid var(--color-secondary);
-            padding-left: 10px;
-            margin-bottom: 10px;
-            padding: 8px;
+            border-left: 3px solid var(--color-secondary);
+            padding-left: 8px;
+            margin-bottom: 8px;
+            padding: 6px;
             background: #f8f9fa;
-            border-radius: 5px;
+            border-radius: 4px;
+            font-size: 0.85rem;
         }
         
         .modal-header-custom {
             background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
             color: white;
-            border-radius: 15px 15px 0 0;
+            border-radius: 12px 12px 0 0;
         }
         
         /* Responsividade para iPhone */
         @media (max-width: 768px) {
             .header h1 {
-                font-size: 1.5rem;
+                font-size: 1.4rem;
             }
             
             .header p {
@@ -218,48 +276,55 @@
             }
             
             .card-body {
-                padding: 12px;
+                padding: 10px;
             }
             
             .value-display {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
             
             .counter-display {
-                font-size: 1.5rem;
+                font-size: 1.3rem;
             }
             
             .btn-custom-primary, .btn-custom-warning, .btn-custom-danger, .btn-custom-success {
-                padding: 6px 12px;
-                font-size: 0.85rem;
+                padding: 5px 10px;
+                font-size: 0.8rem;
             }
             
-            .row-cols-md-2 > * {
-                flex: 0 0 auto;
-                width: 100%;
+            .update-info {
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
             }
         }
         
         @media (max-width: 576px) {
             .container {
-                padding-left: 10px;
-                padding-right: 10px;
+                padding-left: 8px;
+                padding-right: 8px;
             }
             
             .header {
-                padding: 15px 0;
+                padding: 16px 0;
             }
             
             .card-finance {
-                margin-bottom: 12px;
+                margin-bottom: 10px;
+                min-height: 230px;
+            }
+            
+            .header-top {
+                flex-direction: column;
+                gap: 8px;
             }
         }
         
         /* Grid para cards lado a lado */
         .card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
         }
         
         /* Toast notifications */
@@ -268,17 +333,105 @@
             top: 20px;
             right: 20px;
             z-index: 1000;
-            min-width: 250px;
+            min-width: 220px;
         }
         
         .total-monthly {
             background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
             color: white;
-            padding: 10px 15px;
-            border-radius: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
             font-weight: 600;
-            margin-top: 10px;
+            margin-top: 8px;
             text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .apartment-total-section {
+            background-color: rgba(52, 136, 136, 0.1);
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+        }
+        
+        .balance-display {
+            font-size: 1.3rem;
+            font-weight: 800;
+            text-align: center;
+            margin: 8px 0;
+            padding: 8px;
+            border-radius: 8px;
+        }
+        
+        .balance-positive {
+            color: #22BABB;
+            background-color: rgba(34, 186, 187, 0.1);
+        }
+        
+        .balance-negative {
+            color: #F24405;
+            background-color: rgba(242, 68, 5, 0.1);
+        }
+        
+        .balance-neutral {
+            color: #348888;
+            background-color: rgba(52, 136, 136, 0.1);
+        }
+        
+        .salary-input {
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: center;
+            padding: 6px;
+            border: 2px solid var(--color-secondary);
+            border-radius: 6px;
+            width: 100%;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .amortization-input {
+            font-size: 0.85rem;
+            padding: 5px;
+            border: 2px solid var(--color-warning);
+            border-radius: 5px;
+            width: 70px;
+            text-align: center;
+        }
+        
+        .amortization-btn {
+            padding: 5px 10px !important;
+            font-size: 0.8rem !important;
+            white-space: nowrap;
+        }
+        
+        .salary-extra {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .salary-total {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin: 8px 0;
+        }
+        
+        .compact-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+        
+        .compact-buttons {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
         }
     </style>
 </head>
@@ -297,26 +450,71 @@
     <!-- Header -->
     <div class="header">
         <div class="container">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1>💰 Controle Financeiro Pessoal</h1>
-                    <p>Controle seus financiamentos, empréstimos e despesas</p>
+            <div class="header-content">
+                <div class="header-top">
+                    <div class="update-info">
+                        <span>🕒 Última atualização: <span id="updateTime">--:--</span></span>
+                        <button class="btn btn-pdf" onclick="exportToPDF()" title="Exportar relatório do mês">
+                            📊 PDF
+                        </button>
+                    </div>
                 </div>
-                <div id="lastUpdate" class="text-end" style="font-size: 0.8rem; opacity: 0.8;">
-                    Última atualização: <span id="updateTime">--:--</span>
-                </div>
+                <h1>💰 Controle Financeiro</h1>
+                <p>Controle seus financiamentos, empréstimos e despesas</p>
             </div>
         </div>
     </div>
 
     <div class="container">
-        <!-- Cards em Grid -->
+        <!-- Cards em Grid Compacto -->
         <div class="card-grid">
-            <!-- Card 1: Financiamento do Apartamento -->
+            <!-- Card 1: Salário Líquido -->
             <div class="card card-finance">
+                <div class="card-header card-header-custom">
+                    <span>💰 Salário</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="text-center mb-2">
+                            <small>Salário Líquido</small>
+                        </div>
+                        <input type="number" id="salaryInput" class="salary-input" placeholder="R$ 0,00" step="0.01" min="0">
+                        
+                        <div class="salary-extra">
+                            <div class="text-center mb-2">
+                                <small>Extra/Renda Extra</small>
+                            </div>
+                            <input type="number" id="extraInput" class="salary-input" placeholder="R$ 0,00" step="0.01" min="0">
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-custom-success" onclick="saveSalary()">
+                            💾 Salvar
+                        </button>
+                    </div>
+                    
+                    <div id="salaryDisplay" class="mt-3" style="display: none;">
+                        <div class="compact-row">
+                            <span>Salário:</span>
+                            <span>R$ <span id="currentSalary">0,00</span></span>
+                        </div>
+                        <div class="compact-row">
+                            <span>Extra:</span>
+                            <span>R$ <span id="currentExtra">0,00</span></span>
+                        </div>
+                        <div class="salary-total">
+                            Total: R$ <span id="currentTotalSalary">0,00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Financiamento do Apartamento -->
+            <div class="card card-finance" id="apartmentCard">
                 <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
-                    <span>🏠 Financiamento Apartamento</span>
-                    <button class="btn btn-sm btn-light" onclick="showEditApartmentModal()" title="Editar Financiamento">
+                    <span>🏠 Apartamento</span>
+                    <button class="btn btn-sm btn-light" onclick="showEditApartmentModal()" title="Editar">
                         <small>Editar</small>
                     </button>
                 </div>
@@ -325,81 +523,92 @@
                         <span id="apartmentPaidCount">0</span>/<span id="apartmentTotalCount">360</span>
                     </div>
                     <div class="text-center mb-2">
-                        <small>Parcelas pagas / total</small>
+                        <small>Parcelas</small>
                     </div>
                     
                     <div class="value-display">R$ <span id="apartmentMonthly">1.840,00</span></div>
-                    <div class="text-center mb-3">
-                        <small>Valor da parcela</small>
+                    <div class="text-center mb-2">
+                        <small>Mensal</small>
+                    </div>
+                    
+                    <div class="total-display">
+                        Total: R$ <span id="apartmentTotalValue">662.400,00</span>
                     </div>
                     
                     <div class="progress">
                         <div id="apartmentProgress" class="progress-bar" role="progressbar" style="width: 0%; background-color: var(--color-primary);"></div>
                     </div>
                     <div class="text-center mb-3">
-                        <small><span id="apartmentPercentage">0</span>% concluído</small>
+                        <small><span id="apartmentPercentage">0</span>%</small>
                     </div>
                     
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-custom-success" onclick="payApartmentInstallment()">
-                            ✅ Pagar Parcela
+                    <div class="compact-buttons">
+                        <button class="btn btn-custom-success btn-small flex-fill" onclick="payApartmentInstallment()">
+                            ✅ Pagar
                         </button>
-                        <button class="btn btn-custom-warning" onclick="returnApartmentInstallment()">
-                            ↩️ Retornar Parcela
+                        <button class="btn btn-custom-warning btn-small flex-fill" onclick="returnApartmentInstallment()">
+                            ↩️ Retornar
                         </button>
                     </div>
                     
-                    <div class="total-monthly mt-3">
-                        Total Mês: R$ <span id="apartmentTotalMonth">1.840,00</span>
+                    <div class="row mt-2 g-1">
+                        <div class="col-7">
+                            <input type="number" id="amortizeApartment" class="amortization-input" placeholder="Qtd" min="1" max="360">
+                        </div>
+                        <div class="col-5">
+                            <button class="btn btn-custom-warning w-100 amortization-btn" onclick="amortizeApartment()">
+                                Amortizar
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Card 2: Entrada do Apartamento -->
-            <div class="card card-finance">
+            <!-- Card 3: Entrada do Apartamento -->
+            <div class="card card-finance" id="entryCard">
                 <div class="card-header card-header-custom">
-                    <span>🏠 Entrada do Apartamento</span>
+                    <span>🏠 Entrada</span>
                 </div>
                 <div class="card-body">
                     <div class="counter-display">
                         <span id="entryPaidCount">0</span>/<span id="entryTotalCount">28</span>
                     </div>
                     <div class="text-center mb-2">
-                        <small>Parcelas pagas / total</small>
+                        <small>Parcelas</small>
                     </div>
                     
                     <div class="value-display">R$ <span id="entryMonthly">300,00</span></div>
-                    <div class="text-center mb-3">
-                        <small>Valor da parcela</small>
+                    <div class="text-center mb-2">
+                        <small>Mensal</small>
+                    </div>
+                    
+                    <div class="total-display">
+                        Total: R$ <span id="entryTotalValue">8.400,00</span>
                     </div>
                     
                     <div class="progress">
                         <div id="entryProgress" class="progress-bar" role="progressbar" style="width: 0%; background-color: var(--color-secondary);"></div>
                     </div>
                     <div class="text-center mb-3">
-                        <small><span id="entryPercentage">0</span>% concluído</small>
+                        <small><span id="entryPercentage">0</span>%</small>
                     </div>
                     
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-custom-success" onclick="payEntryInstallment()">
-                            ✅ Pagar Parcela
+                    <div class="compact-buttons">
+                        <button class="btn btn-custom-success btn-small flex-fill" onclick="payEntryInstallment()">
+                            ✅ Pagar
                         </button>
-                        <button class="btn btn-custom-warning" onclick="returnEntryInstallment()">
-                            ↩️ Retornar Parcela
+                        <button class="btn btn-custom-warning btn-small flex-fill" onclick="returnEntryInstallment()">
+                            ↩️ Retornar
                         </button>
-                    </div>
-                    
-                    <div class="total-monthly mt-3">
-                        Total Pago: R$ <span id="entryTotalPaid">0,00</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Card 3: Financiamento do Carro -->
-            <div class="card card-finance">
+            <!-- Card 4: Financiamento do Carro -->
+            <div class="card card-finance" id="carCard">
                 <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
-                    <span>🚗 Financiamento Carro</span>
-                    <button class="btn btn-sm btn-light" onclick="showEditCarModal()" title="Editar Financiamento">
+                    <span>🚗 Carro</span>
+                    <button class="btn btn-sm btn-light" onclick="showEditCarModal()" title="Editar">
                         <small>Editar</small>
                     </button>
                 </div>
@@ -408,107 +617,125 @@
                         <span id="carPaidCount">0</span>/<span id="carTotalCount">60</span>
                     </div>
                     <div class="text-center mb-2">
-                        <small>Parcelas pagas / total</small>
+                        <small>Parcelas</small>
                     </div>
                     
                     <div class="value-display">R$ <span id="carMonthly">1.250,00</span></div>
-                    <div class="text-center mb-3">
-                        <small>Valor da parcela</small>
+                    <div class="text-center mb-2">
+                        <small>Mensal</small>
+                    </div>
+                    
+                    <div class="total-display">
+                        Total: R$ <span id="carTotalValue">75.000,00</span>
                     </div>
                     
                     <div class="progress">
                         <div id="carProgress" class="progress-bar" role="progressbar" style="width: 0%; background-color: var(--color-warning);"></div>
                     </div>
                     <div class="text-center mb-3">
-                        <small><span id="carPercentage">0</span>% concluído</small>
+                        <small><span id="carPercentage">0</span>%</small>
                     </div>
                     
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-custom-success" onclick="payCarInstallment()">
-                            ✅ Pagar Parcela
+                    <div class="compact-buttons">
+                        <button class="btn btn-custom-success btn-small flex-fill" onclick="payCarInstallment()">
+                            ✅ Pagar
                         </button>
-                        <button class="btn btn-custom-warning" onclick="returnCarInstallment()">
-                            ↩️ Retornar Parcela
+                        <button class="btn btn-custom-warning btn-small flex-fill" onclick="returnCarInstallment()">
+                            ↩️ Retornar
                         </button>
                     </div>
                     
-                    <div class="total-monthly mt-3">
-                        Total Mês: R$ <span id="carTotalMonth">1.250,00</span>
+                    <div class="row mt-2 g-1">
+                        <div class="col-7">
+                            <input type="number" id="amortizeCar" class="amortization-input" placeholder="Qtd" min="1" max="60">
+                        </div>
+                        <div class="col-5">
+                            <button class="btn btn-custom-warning w-100 amortization-btn" onclick="amortizeCar()">
+                                Amortizar
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Card 4: Despesas do Apartamento -->
+            <!-- Card 5: Despesas do Apartamento -->
             <div class="card card-finance">
                 <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
-                    <span>🏠 Despesas do Apartamento</span>
-                    <button class="btn btn-sm btn-light" onclick="showEditExpensesModal()" title="Editar Despesas">
+                    <span>🏠 Despesas Apto</span>
+                    <button class="btn btn-sm btn-light" onclick="showEditExpensesModal()" title="Editar">
                         <small>Editar</small>
                     </button>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-2">
+                    <div class="mb-2">
+                        <div class="compact-row">
+                            <span>Financiamento:</span>
+                            <span>R$ <span id="financiamentoAptoValue">1.840,00</span></span>
+                        </div>
+                        <div class="compact-row">
+                            <span>Entrada:</span>
+                            <span>R$ <span id="entradaAptoValue">300,00</span></span>
+                        </div>
+                        <div class="compact-row">
                             <span>Condomínio:</span>
                             <span>R$ <span id="condominioValue">450,00</span></span>
                         </div>
-                        <div class="d-flex justify-content-between mb-2">
+                        <div class="compact-row">
                             <span>Água:</span>
                             <span>R$ <span id="aguaValue">120,00</span></span>
                         </div>
-                        <div class="d-flex justify-content-between mb-3">
+                        <div class="compact-row">
                             <span>Energia:</span>
                             <span>R$ <span id="energiaValue">250,00</span></span>
                         </div>
+                        <div class="compact-row">
+                            <span>Gás:</span>
+                            <span>R$ <span id="gasValue">80,00</span></span>
+                        </div>
                     </div>
                     
-                    <div class="value-display">R$ <span id="totalExpenses">820,00</span></div>
-                    <div class="text-center mb-3">
-                        <small>Total das despesas</small>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Total com Financiamento:</span>
-                            <span>R$ <span id="apartmentFinancing">1.840,00</span></span>
+                    <div class="apartment-total-section">
+                        <div class="compact-row">
+                            <strong>Subtotal Fin.:</strong>
+                            <strong>R$ <span id="apartmentFinancing">2.140,00</span></strong>
                         </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Total com Despesas:</span>
-                            <span>R$ <span id="apartmentExpensesTotal">820,00</span></span>
+                        <div class="compact-row">
+                            <strong>Subtotal Desp.:</strong>
+                            <strong>R$ <span id="apartmentExpensesTotal">900,00</span></strong>
                         </div>
-                        <div class="total-monthly mt-3">
-                            <strong>TOTAL APARTAMENTO:</strong> R$ <span id="apartmentGrandTotal">2.660,00</span>
+                        <div class="total-monthly mt-1">
+                            <strong>TOTAL:</strong> R$ <span id="apartmentGrandTotal">3.040,00</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Card 5: Empréstimos -->
+            <!-- Card 6: Empréstimos -->
             <div class="card card-finance">
                 <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
                     <span>📄 Empréstimos</span>
-                    <button class="btn btn-sm btn-light" onclick="showAddLoanModal()" title="Adicionar Empréstimo">
+                    <button class="btn btn-sm btn-light" onclick="showAddLoanModal()" title="Adicionar">
                         <small>+ Novo</small>
                     </button>
                 </div>
-                <div class="card-body" style="overflow-y: auto; max-height: 250px;">
+                <div class="card-body" style="overflow-y: auto; max-height: 240px;">
                     <div id="loansContainer">
-                        <p class="text-muted text-center" style="font-size: 0.9rem;">Nenhum empréstimo cadastrado</p>
+                        <p class="text-muted text-center" style="font-size: 0.85rem;">Nenhum empréstimo</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Card 6: Cartão de Crédito -->
+            <!-- Card 7: Cartão de Crédito -->
             <div class="card card-finance">
                 <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
-                    <span>💳 Cartão de Crédito</span>
-                    <button class="btn btn-sm btn-light" onclick="showAddCreditExpenseModal()" title="Adicionar Despesa">
+                    <span>💳 Cartão</span>
+                    <button class="btn btn-sm btn-light" onclick="showAddCreditExpenseModal()" title="Adicionar">
                         <small>+ Nova</small>
                     </button>
                 </div>
-                <div class="card-body" style="overflow-y: auto; max-height: 250px;">
+                <div class="card-body" style="overflow-y: auto; max-height: 240px;">
                     <div id="creditCardContainer">
-                        <p class="text-muted text-center" style="font-size: 0.9rem;">Nenhuma despesa no cartão</p>
+                        <p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>
                     </div>
                     <div class="total-monthly mt-2">
                         Total: R$ <span id="creditCardTotal">0,00</span>
@@ -516,17 +743,17 @@
                 </div>
             </div>
 
-            <!-- Card 7: Despesas Gerais -->
+            <!-- Card 8: Despesas Gerais -->
             <div class="card card-finance">
                 <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
-                    <span>📋 Despesas Gerais</span>
-                    <button class="btn btn-sm btn-light" onclick="showAddExpenseModal()" title="Adicionar Despesa">
+                    <span>📋 Despesas</span>
+                    <button class="btn btn-sm btn-light" onclick="showAddExpenseModal()" title="Adicionar">
                         <small>+ Nova</small>
                     </button>
                 </div>
-                <div class="card-body" style="overflow-y: auto; max-height: 250px;">
+                <div class="card-body" style="overflow-y: auto; max-height: 240px;">
                     <div id="expensesContainer">
-                        <p class="text-muted text-center" style="font-size: 0.9rem;">Nenhuma despesa geral</p>
+                        <p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>
                     </div>
                     <div class="total-monthly mt-2">
                         Total: R$ <span id="expensesTotal">0,00</span>
@@ -534,72 +761,70 @@
                 </div>
             </div>
 
-            <!-- Card 8: Resumo Financeiro Mensal -->
+            <!-- Card 9: Resumo -->
             <div class="card card-finance">
                 <div class="card-header card-header-custom">
-                    <span>📊 Resumo do Mês</span>
+                    <span>📊 Resumo</span>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-2">
+                    <div class="mb-2">
+                        <div class="compact-row">
                             <span>Apartamento:</span>
-                            <span>R$ <span id="resumoApartment">2.660,00</span></span>
+                            <span>R$ <span id="resumoApartment">3.040,00</span></span>
                         </div>
-                        <div class="d-flex justify-content-between mb-2">
+                        <div class="compact-row">
                             <span>Carro:</span>
                             <span>R$ <span id="resumoCar">1.250,00</span></span>
                         </div>
-                        <div class="d-flex justify-content-between mb-2">
+                        <div class="compact-row">
                             <span>Empréstimos:</span>
                             <span>R$ <span id="resumoLoans">0,00</span></span>
                         </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Cartão de Crédito:</span>
+                        <div class="compact-row">
+                            <span>Cartão:</span>
                             <span>R$ <span id="resumoCredit">0,00</span></span>
                         </div>
-                        <div class="d-flex justify-content-between mb-3">
-                            <span>Outras Despesas:</span>
+                        <div class="compact-row">
+                            <span>Outras:</span>
                             <span>R$ <span id="resumoExpenses">0,00</span></span>
                         </div>
                     </div>
                     
-                    <div class="value-display" style="color: var(--color-danger);">R$ <span id="resumoTotal">3.910,00</span></div>
-                    <div class="text-center mb-3">
-                        <small>Total mensal estimado</small>
+                    <div class="value-display" style="color: var(--color-danger); font-size: 1.3rem;">R$ <span id="resumoTotal">4.290,00</span></div>
+                    <div class="text-center mb-2">
+                        <small>Total mensal</small>
                     </div>
                     
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between mb-2">
-                            <small>Parcelas restantes (Apto):</small>
+                    <!-- Seção de Salário e Economia -->
+                    <div id="salaryBalanceSection" style="display: none;">
+                        <div class="compact-row">
+                            <small>Salário Total:</small>
+                            <small>R$ <span id="resumoSalary">0,00</span></small>
+                        </div>
+                        
+                        <div id="balanceDisplay" class="balance-display balance-neutral" style="font-size: 1.1rem; padding: 6px;">
+                            Saldo: R$ <span id="resumoBalance">0,00</span>
+                        </div>
+                        
+                        <div class="text-center mt-1">
+                            <small id="balanceMessage" style="font-size: 0.8rem;">Informe seu salário</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2">
+                        <div class="compact-row">
+                            <small>Restam (Apto):</small>
                             <small><span id="resumoAptoRestantes">360</span></small>
                         </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <small>Parcelas restantes (Carro):</small>
+                        <div class="compact-row">
+                            <small>Restam (Carro):</small>
                             <small><span id="resumoCarroRestantes">60</span></small>
                         </div>
-                        <div class="d-flex justify-content-between">
-                            <small>Economia mensal:</small>
+                        <div class="compact-row">
+                            <small>Economia:</small>
                             <small>R$ <span id="resumoEconomia">0,00</span></small>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-8">
-                    <small style="color: var(--color-primary); font-weight: 500;">
-                        <span id="dataStatus">🟢 Dados sincronizados em tempo real</span>
-                    </small>
-                </div>
-                <div class="col-4 text-end">
-                    <button class="btn btn-sm btn-custom-primary" onclick="exportData()" title="Exportar dados">
-                        📥 Exportar
-                    </button>
                 </div>
             </div>
         </div>
@@ -611,7 +836,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title">Editar Financiamento do Apartamento</h5>
+                    <h5 class="modal-title">Editar Financiamento</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -630,7 +855,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-custom-primary" onclick="saveApartmentEdit()">Salvar Alterações</button>
+                    <button type="button" class="btn btn-custom-primary" onclick="saveApartmentEdit()">Salvar</button>
                 </div>
             </div>
         </div>
@@ -641,7 +866,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title">Editar Despesas do Apartamento</h5>
+                    <h5 class="modal-title">Editar Despesas</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -657,10 +882,14 @@
                         <label class="form-label">Energia: R$</label>
                         <input type="number" id="editEnergia" class="form-control" step="0.01">
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Gás: R$</label>
+                        <input type="number" id="editGas" class="form-control" step="0.01">
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-custom-primary" onclick="saveExpensesEdit()">Salvar Despesas</button>
+                    <button type="button" class="btn btn-custom-primary" onclick="saveExpensesEdit()">Salvar</button>
                 </div>
             </div>
         </div>
@@ -676,7 +905,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Nome do Empréstimo:</label>
+                        <label class="form-label">Nome:</label>
                         <input type="text" id="loanName" class="form-control" placeholder="Ex: Empréstimo Pessoal">
                     </div>
                     <div class="mb-3">
@@ -684,21 +913,21 @@
                         <input type="number" id="loanTotal" class="form-control" step="0.01" value="10000.00">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Valor da Parcela: R$</label>
+                        <label class="form-label">Parcela: R$</label>
                         <input type="number" id="loanMonthly" class="form-control" step="0.01" value="500.00">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Total de Parcelas:</label>
+                        <label class="form-label">Total Parcelas:</label>
                         <input type="number" id="loanInstallments" class="form-control" value="24">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Parcelas Já Pagas:</label>
+                        <label class="form-label">Parcelas Pagas:</label>
                         <input type="number" id="loanPaid" class="form-control" value="0">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-custom-primary" onclick="addNewLoan()">Adicionar Empréstimo</button>
+                    <button type="button" class="btn btn-custom-primary" onclick="addNewLoan()">Adicionar</button>
                 </div>
             </div>
         </div>
@@ -713,18 +942,18 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="editLoanModalBody">
-                    <!-- Conteúdo preenchido dinamicamente -->
+                    <!-- Conteúdo dinâmico -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Adicionar Despesa Cartão de Crédito -->
+    <!-- Modal Adicionar Despesa Cartão -->
     <div class="modal fade" id="addCreditExpenseModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title">Adicionar Despesa no Cartão</h5>
+                    <h5 class="modal-title">Adicionar Despesa</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -743,7 +972,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-custom-primary" onclick="addNewCreditExpense()">Adicionar Despesa</button>
+                    <button type="button" class="btn btn-custom-primary" onclick="addNewCreditExpense()">Adicionar</button>
                 </div>
             </div>
         </div>
@@ -754,7 +983,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title">Adicionar Despesa Geral</h5>
+                    <h5 class="modal-title">Adicionar Despesa</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -783,7 +1012,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-custom-primary" onclick="addNewExpense()">Adicionar Despesa</button>
+                    <button type="button" class="btn btn-custom-primary" onclick="addNewExpense()">Adicionar</button>
                 </div>
             </div>
         </div>
@@ -793,7 +1022,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Configuração do Firebase (USE SUAS PRÓPRIAS CREDENCIAIS)
+        // Configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCz3Q8qH2oHkK7v9QkL-6mX6JZ4Xq8Y9v0",
             authDomain: "financas-8d957.firebaseapp.com",
@@ -813,26 +1042,35 @@
             apartment: {
                 totalInstallments: 360,
                 installmentValue: 1840,
-                paidInstallments: 0
+                paidInstallments: 0,
+                amortizedInstallments: 0
             },
             entry: {
                 totalInstallments: 28,
                 installmentValue: 300,
-                paidInstallments: 0
+                paidInstallments: 0,
+                amortizedInstallments: 0
             },
             car: {
                 totalInstallments: 60,
                 installmentValue: 1250,
-                paidInstallments: 0
+                paidInstallments: 0,
+                amortizedInstallments: 0
             },
             expenses: {
                 condominium: 450,
                 water: 120,
-                energy: 250
+                energy: 250,
+                gas: 80
             },
             loans: [],
             creditCard: [],
-            generalExpenses: []
+            generalExpenses: [],
+            salary: {
+                base: 0,
+                extra: 0,
+                total: 0
+            }
         };
 
         // Inicializar a aplicação
@@ -852,7 +1090,7 @@
             // Esconder loading após carregar
             setTimeout(() => {
                 document.getElementById('loadingOverlay').style.display = 'none';
-            }, 1000);
+            }, 800);
             
             // Atualizar hora
             updateTime();
@@ -867,7 +1105,6 @@
                     financialData.apartment = snapshot.val();
                     updateApartmentDisplay();
                     updateResumo();
-                    showToast('Dados do apartamento atualizados', 'success');
                 }
             });
             
@@ -924,43 +1161,148 @@
                     updateResumo();
                 }
             });
+            
+            // Salário
+            database.ref('salary').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    financialData.salary = snapshot.val();
+                    updateSalaryDisplay();
+                    updateResumo();
+                }
+            });
+        }
+
+        // Funções para Salário (com Extra)
+        function saveSalary() {
+            const baseValue = parseFloat(document.getElementById('salaryInput').value) || 0;
+            const extraValue = parseFloat(document.getElementById('extraInput').value) || 0;
+            
+            if (baseValue <= 0 && extraValue <= 0) {
+                showToast('Informe valores válidos!', 'danger');
+                return;
+            }
+            
+            financialData.salary = {
+                base: baseValue,
+                extra: extraValue,
+                total: baseValue + extraValue
+            };
+            
+            saveToFirebase('salary', financialData.salary);
+            showToast('Salário salvo com sucesso!', 'success');
+        }
+
+        function updateSalaryDisplay() {
+            const salary = financialData.salary || { base: 0, extra: 0, total: 0 };
+            
+            if (salary.total > 0) {
+                document.getElementById('salaryInput').value = salary.base;
+                document.getElementById('extraInput').value = salary.extra;
+                document.getElementById('currentSalary').textContent = formatCurrency(salary.base);
+                document.getElementById('currentExtra').textContent = formatCurrency(salary.extra);
+                document.getElementById('currentTotalSalary').textContent = formatCurrency(salary.total);
+                document.getElementById('salaryDisplay').style.display = 'block';
+                document.getElementById('salaryBalanceSection').style.display = 'block';
+            } else {
+                document.getElementById('salaryDisplay').style.display = 'none';
+                document.getElementById('salaryBalanceSection').style.display = 'none';
+            }
         }
 
         // Funções para o Financiamento do Apartamento
         function updateApartmentDisplay() {
             const apt = financialData.apartment;
-            const percentage = apt.totalInstallments > 0 ? 
-                Math.round((apt.paidInstallments / apt.totalInstallments) * 100) : 0;
+            const totalInstallments = apt.totalInstallments;
+            const effectivePaid = apt.paidInstallments + (apt.amortizedInstallments || 0);
+            const percentage = totalInstallments > 0 ? 
+                Math.round((effectivePaid / totalInstallments) * 100) : 0;
+            const totalValue = apt.installmentValue * totalInstallments;
             
-            document.getElementById('apartmentPaidCount').textContent = apt.paidInstallments;
-            document.getElementById('apartmentTotalCount').textContent = apt.totalInstallments;
+            // Verificar se está concluído
+            const isCompleted = effectivePaid >= totalInstallments;
+            const cardElement = document.getElementById('apartmentCard');
+            
+            if (isCompleted) {
+                cardElement.classList.add('card-completed');
+                if (!cardElement.querySelector('.completed-badge')) {
+                    const badge = document.createElement('div');
+                    badge.className = 'completed-badge';
+                    badge.textContent = '✅ FINALIZADO';
+                    cardElement.appendChild(badge);
+                }
+            } else {
+                cardElement.classList.remove('card-completed');
+                const badge = cardElement.querySelector('.completed-badge');
+                if (badge) {
+                    badge.remove();
+                }
+            }
+            
+            document.getElementById('apartmentPaidCount').textContent = effectivePaid;
+            document.getElementById('apartmentTotalCount').textContent = totalInstallments;
             document.getElementById('apartmentMonthly').textContent = formatCurrency(apt.installmentValue);
+            document.getElementById('apartmentTotalValue').textContent = formatCurrency(totalValue);
             document.getElementById('apartmentProgress').style.width = `${percentage}%`;
             document.getElementById('apartmentPercentage').textContent = percentage;
-            document.getElementById('apartmentFinancing').textContent = formatCurrency(apt.installmentValue);
-            document.getElementById('apartmentTotalMonth').textContent = formatCurrency(apt.installmentValue);
+            document.getElementById('financiamentoAptoValue').textContent = formatCurrency(apt.installmentValue);
             
             updateApartmentTotal();
         }
 
         function payApartmentInstallment() {
-            if (financialData.apartment.paidInstallments < financialData.apartment.totalInstallments) {
-                financialData.apartment.paidInstallments++;
-                saveToFirebase('apartment', financialData.apartment);
-                showToast('Parcela do apartamento registrada!', 'success');
+            const apt = financialData.apartment;
+            const effectivePaid = apt.paidInstallments + (apt.amortizedInstallments || 0);
+            
+            if (effectivePaid < apt.totalInstallments) {
+                apt.paidInstallments++;
+                saveToFirebase('apartment', apt);
+                showToast('Parcela registrada!', 'success');
             } else {
                 showToast('Todas as parcelas já foram pagas!', 'info');
             }
         }
 
         function returnApartmentInstallment() {
-            if (financialData.apartment.paidInstallments > 0) {
-                financialData.apartment.paidInstallments--;
-                saveToFirebase('apartment', financialData.apartment);
-                showToast('Parcela retornada com sucesso!', 'warning');
+            const apt = financialData.apartment;
+            const effectivePaid = apt.paidInstallments + (apt.amortizedInstallments || 0);
+            
+            if (effectivePaid > 0) {
+                // Primeiro tenta retornar das parcelas pagas
+                if (apt.paidInstallments > 0) {
+                    apt.paidInstallments--;
+                } 
+                // Se não há parcelas pagas, retorna das amortizadas
+                else if (apt.amortizedInstallments > 0) {
+                    apt.amortizedInstallments--;
+                }
+                
+                saveToFirebase('apartment', apt);
+                showToast('Parcela retornada!', 'warning');
             } else {
                 showToast('Não há parcelas para retornar!', 'info');
             }
+        }
+
+        function amortizeApartment() {
+            const apt = financialData.apartment;
+            const amortizeQty = parseInt(document.getElementById('amortizeApartment').value) || 0;
+            const effectivePaid = apt.paidInstallments + (apt.amortizedInstallments || 0);
+            const remaining = apt.totalInstallments - effectivePaid;
+            
+            if (amortizeQty <= 0) {
+                showToast('Informe uma quantidade válida!', 'danger');
+                return;
+            }
+            
+            if (amortizeQty > remaining) {
+                showToast(`Só pode amortizar até ${remaining} parcelas!`, 'warning');
+                return;
+            }
+            
+            apt.amortizedInstallments = (apt.amortizedInstallments || 0) + amortizeQty;
+            saveToFirebase('apartment', apt);
+            document.getElementById('amortizeApartment').value = '';
+            showToast(`${amortizeQty} parcelas amortizadas!`, 'success');
         }
 
         function showEditApartmentModal() {
@@ -984,33 +1326,72 @@
         // Funções para a Entrada do Apartamento
         function updateEntryDisplay() {
             const entry = financialData.entry;
-            const percentage = entry.totalInstallments > 0 ? 
-                Math.round((entry.paidInstallments / entry.totalInstallments) * 100) : 0;
-            const totalPaid = entry.installmentValue * entry.paidInstallments;
+            const totalInstallments = entry.totalInstallments;
+            const effectivePaid = entry.paidInstallments + (entry.amortizedInstallments || 0);
+            const percentage = totalInstallments > 0 ? 
+                Math.round((effectivePaid / totalInstallments) * 100) : 0;
+            const totalValue = entry.installmentValue * totalInstallments;
             
-            document.getElementById('entryPaidCount').textContent = entry.paidInstallments;
-            document.getElementById('entryTotalCount').textContent = entry.totalInstallments;
+            // Verificar se está concluído
+            const isCompleted = effectivePaid >= totalInstallments;
+            const cardElement = document.getElementById('entryCard');
+            
+            if (isCompleted) {
+                cardElement.classList.add('card-completed');
+                if (!cardElement.querySelector('.completed-badge')) {
+                    const badge = document.createElement('div');
+                    badge.className = 'completed-badge';
+                    badge.textContent = '✅ FINALIZADO';
+                    cardElement.appendChild(badge);
+                }
+            } else {
+                cardElement.classList.remove('card-completed');
+                const badge = cardElement.querySelector('.completed-badge');
+                if (badge) {
+                    badge.remove();
+                }
+            }
+            
+            document.getElementById('entryPaidCount').textContent = effectivePaid;
+            document.getElementById('entryTotalCount').textContent = totalInstallments;
             document.getElementById('entryMonthly').textContent = formatCurrency(entry.installmentValue);
+            document.getElementById('entryTotalValue').textContent = formatCurrency(totalValue);
+            document.getElementById('entradaAptoValue').textContent = formatCurrency(entry.installmentValue);
             document.getElementById('entryProgress').style.width = `${percentage}%`;
             document.getElementById('entryPercentage').textContent = percentage;
-            document.getElementById('entryTotalPaid').textContent = formatCurrency(totalPaid);
+            
+            updateApartmentTotal();
         }
 
         function payEntryInstallment() {
-            if (financialData.entry.paidInstallments < financialData.entry.totalInstallments) {
-                financialData.entry.paidInstallments++;
-                saveToFirebase('entry', financialData.entry);
-                showToast('Parcela da entrada registrada!', 'success');
+            const entry = financialData.entry;
+            const effectivePaid = entry.paidInstallments + (entry.amortizedInstallments || 0);
+            
+            if (effectivePaid < entry.totalInstallments) {
+                entry.paidInstallments++;
+                saveToFirebase('entry', entry);
+                showToast('Parcela registrada!', 'success');
             } else {
-                showToast('Todas as parcelas da entrada já foram pagas!', 'info');
+                showToast('Todas as parcelas já foram pagas!', 'info');
             }
         }
 
         function returnEntryInstallment() {
-            if (financialData.entry.paidInstallments > 0) {
-                financialData.entry.paidInstallments--;
-                saveToFirebase('entry', financialData.entry);
-                showToast('Parcela da entrada retornada!', 'warning');
+            const entry = financialData.entry;
+            const effectivePaid = entry.paidInstallments + (entry.amortizedInstallments || 0);
+            
+            if (effectivePaid > 0) {
+                // Primeiro tenta retornar das parcelas pagas
+                if (entry.paidInstallments > 0) {
+                    entry.paidInstallments--;
+                } 
+                // Se não há parcelas pagas, retorna das amortizadas
+                else if (entry.amortizedInstallments > 0) {
+                    entry.amortizedInstallments--;
+                }
+                
+                saveToFirebase('entry', entry);
+                showToast('Parcela retornada!', 'warning');
             } else {
                 showToast('Não há parcelas para retornar!', 'info');
             }
@@ -1019,51 +1400,109 @@
         // Funções para o Financiamento do Carro
         function updateCarDisplay() {
             const car = financialData.car;
-            const percentage = car.totalInstallments > 0 ? 
-                Math.round((car.paidInstallments / car.totalInstallments) * 100) : 0;
+            const totalInstallments = car.totalInstallments;
+            const effectivePaid = car.paidInstallments + (car.amortizedInstallments || 0);
+            const percentage = totalInstallments > 0 ? 
+                Math.round((effectivePaid / totalInstallments) * 100) : 0;
+            const totalValue = car.installmentValue * totalInstallments;
             
-            document.getElementById('carPaidCount').textContent = car.paidInstallments;
-            document.getElementById('carTotalCount').textContent = car.totalInstallments;
+            // Verificar se está concluído
+            const isCompleted = effectivePaid >= totalInstallments;
+            const cardElement = document.getElementById('carCard');
+            
+            if (isCompleted) {
+                cardElement.classList.add('card-completed');
+                if (!cardElement.querySelector('.completed-badge')) {
+                    const badge = document.createElement('div');
+                    badge.className = 'completed-badge';
+                    badge.textContent = '✅ FINALIZADO';
+                    cardElement.appendChild(badge);
+                }
+            } else {
+                cardElement.classList.remove('card-completed');
+                const badge = cardElement.querySelector('.completed-badge');
+                if (badge) {
+                    badge.remove();
+                }
+            }
+            
+            document.getElementById('carPaidCount').textContent = effectivePaid;
+            document.getElementById('carTotalCount').textContent = totalInstallments;
             document.getElementById('carMonthly').textContent = formatCurrency(car.installmentValue);
+            document.getElementById('carTotalValue').textContent = formatCurrency(totalValue);
             document.getElementById('carProgress').style.width = `${percentage}%`;
             document.getElementById('carPercentage').textContent = percentage;
-            document.getElementById('carTotalMonth').textContent = formatCurrency(car.installmentValue);
         }
 
         function payCarInstallment() {
-            if (financialData.car.paidInstallments < financialData.car.totalInstallments) {
-                financialData.car.paidInstallments++;
-                saveToFirebase('car', financialData.car);
-                showToast('Parcela do carro registrada!', 'success');
+            const car = financialData.car;
+            const effectivePaid = car.paidInstallments + (car.amortizedInstallments || 0);
+            
+            if (effectivePaid < car.totalInstallments) {
+                car.paidInstallments++;
+                saveToFirebase('car', car);
+                showToast('Parcela registrada!', 'success');
             } else {
-                showToast('Todas as parcelas do carro já foram pagas!', 'info');
+                showToast('Todas as parcelas já foram pagas!', 'info');
             }
         }
 
         function returnCarInstallment() {
-            if (financialData.car.paidInstallments > 0) {
-                financialData.car.paidInstallments--;
-                saveToFirebase('car', financialData.car);
-                showToast('Parcela do carro retornada!', 'warning');
+            const car = financialData.car;
+            const effectivePaid = car.paidInstallments + (car.amortizedInstallments || 0);
+            
+            if (effectivePaid > 0) {
+                // Primeiro tenta retornar das parcelas pagas
+                if (car.paidInstallments > 0) {
+                    car.paidInstallments--;
+                } 
+                // Se não há parcelas pagas, retorna das amortizadas
+                else if (car.amortizedInstallments > 0) {
+                    car.amortizedInstallments--;
+                }
+                
+                saveToFirebase('car', car);
+                showToast('Parcela retornada!', 'warning');
             } else {
                 showToast('Não há parcelas para retornar!', 'info');
             }
         }
 
+        function amortizeCar() {
+            const car = financialData.car;
+            const amortizeQty = parseInt(document.getElementById('amortizeCar').value) || 0;
+            const effectivePaid = car.paidInstallments + (car.amortizedInstallments || 0);
+            const remaining = car.totalInstallments - effectivePaid;
+            
+            if (amortizeQty <= 0) {
+                showToast('Informe uma quantidade válida!', 'danger');
+                return;
+            }
+            
+            if (amortizeQty > remaining) {
+                showToast(`Só pode amortizar até ${remaining} parcelas!`, 'warning');
+                return;
+            }
+            
+            car.amortizedInstallments = (car.amortizedInstallments || 0) + amortizeQty;
+            saveToFirebase('car', car);
+            document.getElementById('amortizeCar').value = '';
+            showToast(`${amortizeQty} parcelas amortizadas!`, 'success');
+        }
+
         function showEditCarModal() {
-            // Implementar modal similar ao do apartamento
             showToast('Funcionalidade em desenvolvimento', 'info');
         }
 
         // Funções para Despesas do Apartamento
         function updateExpensesDisplay() {
             const exp = financialData.expenses;
-            const total = exp.condominium + exp.water + exp.energy;
+            const total = exp.condominium + exp.water + exp.energy + exp.gas;
             
             document.getElementById('condominioValue').textContent = formatCurrency(exp.condominium);
             document.getElementById('aguaValue').textContent = formatCurrency(exp.water);
             document.getElementById('energiaValue').textContent = formatCurrency(exp.energy);
-            document.getElementById('totalExpenses').textContent = formatCurrency(total);
+            document.getElementById('gasValue').textContent = formatCurrency(exp.gas);
             document.getElementById('apartmentExpensesTotal').textContent = formatCurrency(total);
             
             updateApartmentTotal();
@@ -1071,11 +1510,16 @@
 
         function updateApartmentTotal() {
             const aptValue = financialData.apartment.installmentValue;
+            const entryValue = financialData.entry.installmentValue;
             const expTotal = financialData.expenses.condominium + 
                            financialData.expenses.water + 
-                           financialData.expenses.energy;
-            const total = aptValue + expTotal;
+                           financialData.expenses.energy + 
+                           financialData.expenses.gas;
             
+            const subtotalFinancing = aptValue + entryValue;
+            const total = subtotalFinancing + expTotal;
+            
+            document.getElementById('apartmentFinancing').textContent = formatCurrency(subtotalFinancing);
             document.getElementById('apartmentGrandTotal').textContent = formatCurrency(total);
         }
 
@@ -1083,6 +1527,7 @@
             document.getElementById('editCondominio').value = financialData.expenses.condominium;
             document.getElementById('editAgua').value = financialData.expenses.water;
             document.getElementById('editEnergia').value = financialData.expenses.energy;
+            document.getElementById('editGas').value = financialData.expenses.gas;
             
             new bootstrap.Modal(document.getElementById('editExpensesModal')).show();
         }
@@ -1091,6 +1536,7 @@
             financialData.expenses.condominium = parseFloat(document.getElementById('editCondominio').value) || 0;
             financialData.expenses.water = parseFloat(document.getElementById('editAgua').value) || 0;
             financialData.expenses.energy = parseFloat(document.getElementById('editEnergia').value) || 0;
+            financialData.expenses.gas = parseFloat(document.getElementById('editGas').value) || 0;
             
             saveToFirebase('expenses', financialData.expenses);
             bootstrap.Modal.getInstance(document.getElementById('editExpensesModal')).hide();
@@ -1120,7 +1566,8 @@
                 totalAmount: total,
                 monthlyPayment: monthly,
                 totalInstallments: installments,
-                paidInstallments: paid
+                paidInstallments: paid,
+                amortizedInstallments: 0
             };
             
             financialData.loans.push(newLoan);
@@ -1134,37 +1581,42 @@
             const container = document.getElementById('loansContainer');
             
             if (!financialData.loans || financialData.loans.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.9rem;">Nenhum empréstimo cadastrado</p>';
+                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhum empréstimo</p>';
                 return;
             }
             
             let html = '';
             
             financialData.loans.forEach(loan => {
+                const effectivePaid = loan.paidInstallments + (loan.amortizedInstallments || 0);
                 const percentage = loan.totalInstallments > 0 ? 
-                    Math.round((loan.paidInstallments / loan.totalInstallments) * 100) : 0;
-                const remaining = loan.totalAmount - (loan.monthlyPayment * loan.paidInstallments);
+                    Math.round((effectivePaid / loan.totalInstallments) * 100) : 0;
+                const remaining = loan.totalAmount - (loan.monthlyPayment * effectivePaid);
+                const isCompleted = effectivePaid >= loan.totalInstallments;
                 
                 html += `
-                    <div class="loan-item">
+                    <div class="loan-item" style="${isCompleted ? 'border-left: 3px solid #22BABB; background-color: rgba(34, 186, 187, 0.1);' : ''}">
                         <div class="d-flex justify-content-between align-items-start">
                             <div style="flex: 1;">
-                                <strong style="font-size: 0.9rem;">${loan.name}</strong>
+                                <strong style="font-size: 0.85rem;">${loan.name} ${isCompleted ? '✅' : ''}</strong>
                                 <div style="font-size: 0.8rem;">
                                     <div>Parcela: R$ ${formatCurrency(loan.monthlyPayment)}</div>
-                                    <div>${loan.paidInstallments}/${loan.totalInstallments} parcelas</div>
-                                    <div>Restante: R$ ${formatCurrency(remaining)}</div>
+                                    <div>${effectivePaid}/${loan.totalInstallments}</div>
+                                    <div>Total: R$ ${formatCurrency(loan.totalAmount)}</div>
                                 </div>
-                                <div class="progress mt-1" style="height: 5px;">
+                                <div class="progress mt-1" style="height: 4px;">
                                     <div class="progress-bar" style="width: ${percentage}%; background-color: var(--color-secondary);"></div>
                                 </div>
                             </div>
                             <div class="d-flex flex-column ms-2">
-                                <button class="btn btn-small btn-custom-success mb-1" onclick="payLoanInstallment(${loan.id})">
+                                <button class="btn btn-small btn-custom-success mb-1" onclick="payLoanInstallment(${loan.id})" ${isCompleted ? 'disabled' : ''}>
                                     Pagar
                                 </button>
-                                <button class="btn btn-small btn-custom-warning" onclick="showEditLoanModal(${loan.id})">
+                                <button class="btn btn-small btn-custom-warning mb-1" onclick="showEditLoanModal(${loan.id})">
                                     Editar
+                                </button>
+                                <button class="btn btn-small btn-custom-danger" onclick="deleteLoan(${loan.id})">
+                                    Excluir
                                 </button>
                             </div>
                         </div>
@@ -1177,7 +1629,11 @@
 
         function payLoanInstallment(loanId) {
             const loan = financialData.loans.find(l => l.id === loanId);
-            if (loan && loan.paidInstallments < loan.totalInstallments) {
+            if (!loan) return;
+            
+            const effectivePaid = loan.paidInstallments + (loan.amortizedInstallments || 0);
+            
+            if (effectivePaid < loan.totalInstallments) {
                 loan.paidInstallments++;
                 saveToFirebase('loans', financialData.loans);
                 showToast('Parcela do empréstimo paga!', 'success');
@@ -1190,9 +1646,11 @@
             const loan = financialData.loans.find(l => l.id === loanId);
             if (!loan) return;
             
+            const effectivePaid = loan.paidInstallments + (loan.amortizedInstallments || 0);
+            
             const modalBody = `
                 <div class="mb-3">
-                    <label class="form-label">Nome do Empréstimo:</label>
+                    <label class="form-label">Nome:</label>
                     <input type="text" id="editLoanName" class="form-control" value="${loan.name}">
                 </div>
                 <div class="mb-3">
@@ -1200,12 +1658,19 @@
                     <input type="number" id="editLoanPaid" class="form-control" value="${loan.paidInstallments}">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Total de Parcelas:</label>
+                    <label class="form-label">Parcelas Amortizadas:</label>
+                    <input type="number" id="editLoanAmortized" class="form-control" value="${loan.amortizedInstallments || 0}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Total Parcelas:</label>
                     <input type="number" id="editLoanTotal" class="form-control" value="${loan.totalInstallments}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Parcela: R$</label>
+                    <input type="number" id="editLoanMonthly" class="form-control" step="0.01" value="${loan.monthlyPayment}">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-custom-warning" onclick="deleteLoan(${loan.id})">Excluir</button>
                     <button type="button" class="btn btn-custom-primary" onclick="saveLoanEdit(${loan.id})">Salvar</button>
                 </div>
             `;
@@ -1220,7 +1685,12 @@
             
             loan.name = document.getElementById('editLoanName').value;
             loan.paidInstallments = parseInt(document.getElementById('editLoanPaid').value) || 0;
+            loan.amortizedInstallments = parseInt(document.getElementById('editLoanAmortized').value) || 0;
             loan.totalInstallments = parseInt(document.getElementById('editLoanTotal').value) || 0;
+            loan.monthlyPayment = parseFloat(document.getElementById('editLoanMonthly').value) || 0;
+            
+            // Atualizar valor total
+            loan.totalAmount = loan.monthlyPayment * loan.totalInstallments;
             
             saveToFirebase('loans', financialData.loans);
             bootstrap.Modal.getInstance(document.getElementById('editLoanModal')).hide();
@@ -1228,10 +1698,9 @@
         }
 
         function deleteLoan(loanId) {
-            if (confirm('Tem certeza que deseja excluir este empréstimo?')) {
+            if (confirm('Excluir este empréstimo?')) {
                 financialData.loans = financialData.loans.filter(l => l.id !== loanId);
                 saveToFirebase('loans', financialData.loans);
-                bootstrap.Modal.getInstance(document.getElementById('editLoanModal')).hide();
                 showToast('Empréstimo excluído!', 'info');
             }
         }
@@ -1263,7 +1732,7 @@
             saveToFirebase('creditCard', financialData.creditCard);
             
             bootstrap.Modal.getInstance(document.getElementById('addCreditExpenseModal')).hide();
-            showToast('Despesa no cartão adicionada!', 'success');
+            showToast('Despesa adicionada!', 'success');
         }
 
         function renderCreditCard() {
@@ -1271,7 +1740,7 @@
             const currentMonth = new Date().toISOString().substring(0, 7);
             
             if (!financialData.creditCard || financialData.creditCard.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.9rem;">Nenhuma despesa no cartão</p>';
+                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>';
                 document.getElementById('creditCardTotal').textContent = '0,00';
                 return;
             }
@@ -1283,7 +1752,7 @@
             document.getElementById('creditCardTotal').textContent = formatCurrency(total);
             
             if (currentMonthExpenses.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.9rem;">Nenhuma despesa este mês</p>';
+                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>';
                 return;
             }
             
@@ -1294,7 +1763,7 @@
                     <div class="expense-item">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <strong style="font-size: 0.9rem;">${expense.name}</strong>
+                                <strong style="font-size: 0.85rem;">${expense.name}</strong>
                                 <div style="font-size: 0.8rem; color: #666;">${expense.date}</div>
                             </div>
                             <div>
@@ -1354,7 +1823,7 @@
             const currentMonth = new Date().toISOString().substring(0, 7);
             
             if (!financialData.generalExpenses || financialData.generalExpenses.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.9rem;">Nenhuma despesa geral</p>';
+                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>';
                 document.getElementById('expensesTotal').textContent = '0,00';
                 return;
             }
@@ -1366,7 +1835,7 @@
             document.getElementById('expensesTotal').textContent = formatCurrency(total);
             
             if (currentMonthExpenses.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.9rem;">Nenhuma despesa este mês</p>';
+                container.innerHTML = '<p class="text-muted text-center" style="font-size: 0.85rem;">Nenhuma despesa</p>';
                 return;
             }
             
@@ -1374,20 +1843,20 @@
             
             currentMonthExpenses.forEach(expense => {
                 const categoryNames = {
-                    'alimentacao': '🍔 Alimentação',
-                    'transporte': '🚗 Transporte',
-                    'lazer': '🎮 Lazer',
-                    'saude': '🏥 Saúde',
-                    'outros': '📦 Outros'
+                    'alimentacao': '🍔',
+                    'transporte': '🚗',
+                    'lazer': '🎮',
+                    'saude': '🏥',
+                    'outros': '📦'
                 };
                 
                 html += `
                     <div class="expense-item">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <strong style="font-size: 0.9rem;">${expense.name}</strong>
+                                <strong style="font-size: 0.85rem;">${expense.name}</strong>
                                 <div style="font-size: 0.8rem; color: #666;">
-                                    ${categoryNames[expense.category] || 'Outros'} • ${expense.date}
+                                    ${categoryNames[expense.category] || ''} ${expense.date}
                                 </div>
                             </div>
                             <div>
@@ -1417,7 +1886,8 @@
             const entryFinancing = financialData.entry.installmentValue;
             const aptExpenses = financialData.expenses.condominium + 
                                financialData.expenses.water + 
-                               financialData.expenses.energy;
+                               financialData.expenses.energy + 
+                               financialData.expenses.gas;
             const aptTotal = aptFinancing + entryFinancing + aptExpenses;
             
             // Carro
@@ -1425,7 +1895,8 @@
             
             // Empréstimos
             const loansTotal = (financialData.loans || []).reduce((sum, loan) => {
-                return loan.paidInstallments < loan.totalInstallments ? sum + loan.monthlyPayment : sum;
+                const effectivePaid = loan.paidInstallments + (loan.amortizedInstallments || 0);
+                return effectivePaid < loan.totalInstallments ? sum + loan.monthlyPayment : sum;
             }, 0);
             
             // Cartão de crédito (mês atual)
@@ -1451,30 +1922,216 @@
             document.getElementById('resumoTotal').textContent = formatCurrency(totalGeral);
             
             // Parcelas restantes
-            document.getElementById('resumoAptoRestantes').textContent = 
-                financialData.apartment.totalInstallments - financialData.apartment.paidInstallments;
-            document.getElementById('resumoCarroRestantes').textContent = 
-                financialData.car.totalInstallments - financialData.car.paidInstallments;
+            const aptEffectivePaid = financialData.apartment.paidInstallments + (financialData.apartment.amortizedInstallments || 0);
+            const entryEffectivePaid = financialData.entry.paidInstallments + (financialData.entry.amortizedInstallments || 0);
+            const carEffectivePaid = financialData.car.paidInstallments + (financialData.car.amortizedInstallments || 0);
             
-            // Economia (quando concluir parcelas)
-            const economia = 0; // Implementar lógica se necessário
-            document.getElementById('resumoEconomia').textContent = formatCurrency(economia);
+            document.getElementById('resumoAptoRestantes').textContent = 
+                Math.max(0, financialData.apartment.totalInstallments - aptEffectivePaid);
+            document.getElementById('resumoCarroRestantes').textContent = 
+                Math.max(0, financialData.car.totalInstallments - carEffectivePaid);
+            
+            // Cálculo de saldo baseado no salário total (base + extra)
+            const salary = financialData.salary?.total || 0;
+            if (salary > 0) {
+                const balance = salary - totalGeral;
+                document.getElementById('resumoSalary').textContent = formatCurrency(salary);
+                document.getElementById('resumoBalance').textContent = formatCurrency(Math.abs(balance));
+                
+                const balanceDisplay = document.getElementById('balanceDisplay');
+                const balanceMessage = document.getElementById('balanceMessage');
+                
+                if (balance > 0) {
+                    // Saldo positivo (sobra dinheiro)
+                    balanceDisplay.className = 'balance-display balance-positive';
+                    balanceDisplay.innerHTML = `💰 Saldo: R$ <span id="resumoBalance">${formatCurrency(balance)}</span>`;
+                    balanceMessage.textContent = `Sobra R$ ${formatCurrency(balance)}`;
+                    document.getElementById('resumoEconomia').textContent = formatCurrency(balance);
+                } else if (balance < 0) {
+                    // Saldo negativo (faltou dinheiro)
+                    balanceDisplay.className = 'balance-display balance-negative';
+                    balanceDisplay.innerHTML = `⚠️ Déficit: R$ <span id="resumoBalance">${formatCurrency(Math.abs(balance))}</span>`;
+                    balanceMessage.textContent = `Falta R$ ${formatCurrency(Math.abs(balance))}`;
+                    document.getElementById('resumoEconomia').textContent = formatCurrency(0);
+                } else {
+                    // Saldo zerado
+                    balanceDisplay.className = 'balance-display balance-neutral';
+                    balanceDisplay.innerHTML = `⚖️ Equilíbrio: R$ <span id="resumoBalance">${formatCurrency(balance)}</span>`;
+                    balanceMessage.textContent = 'Orçamento equilibrado';
+                    document.getElementById('resumoEconomia').textContent = formatCurrency(0);
+                }
+            } else {
+                document.getElementById('resumoEconomia').textContent = '0,00';
+            }
+        }
+
+        // Função para exportar PDF
+        function exportToPDF() {
+            showToast('Gerando relatório...', 'info');
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const currentDate = new Date();
+            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                              "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            
+            const month = monthNames[currentDate.getMonth()];
+            const year = currentDate.getFullYear();
+            
+            // Cabeçalho
+            doc.setFillColor(52, 136, 136);
+            doc.rect(0, 0, 210, 25, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.text('Relatório Financeiro', 105, 12, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text(`${month}/${year}`, 105, 19, { align: 'center' });
+            
+            doc.setTextColor(0, 0, 0);
+            let yPosition = 35;
+            
+            // Seção 1: Resumo
+            doc.setFontSize(14);
+            doc.setTextColor(52, 136, 136);
+            doc.text('📊 RESUMO', 10, yPosition);
+            yPosition += 8;
+            
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            
+            // Calcular valores
+            const aptFinancing = financialData.apartment.installmentValue;
+            const entryFinancing = financialData.entry.installmentValue;
+            const aptExpenses = financialData.expenses.condominium + 
+                               financialData.expenses.water + 
+                               financialData.expenses.energy + 
+                               financialData.expenses.gas;
+            const aptTotal = aptFinancing + entryFinancing + aptExpenses;
+            const carTotal = financialData.car.installmentValue;
+            
+            const loansTotal = (financialData.loans || []).reduce((sum, loan) => {
+                const effectivePaid = loan.paidInstallments + (loan.amortizedInstallments || 0);
+                return effectivePaid < loan.totalInstallments ? sum + loan.monthlyPayment : sum;
+            }, 0);
+            
+            const currentMonth = new Date().toISOString().substring(0, 7);
+            const creditCardTotal = (financialData.creditCard || [])
+                .filter(e => e.date && e.date.substring(0, 7) === currentMonth)
+                .reduce((sum, exp) => sum + exp.amount, 0);
+            
+            const expensesTotal = (financialData.generalExpenses || [])
+                .filter(e => e.date && e.date.substring(0, 7) === currentMonth)
+                .reduce((sum, exp) => sum + exp.amount, 0);
+            
+            const totalGeral = aptTotal + carTotal + loansTotal + creditCardTotal + expensesTotal;
+            const salary = financialData.salary?.total || 0;
+            const balance = salary - totalGeral;
+            
+            // Itens
+            const items = [
+                [`Apartamento`, `R$ ${formatCurrency(aptTotal)}`],
+                [`Carro`, `R$ ${formatCurrency(carTotal)}`],
+                [`Empréstimos`, `R$ ${formatCurrency(loansTotal)}`],
+                [`Cartão`, `R$ ${formatCurrency(creditCardTotal)}`],
+                [`Outras`, `R$ ${formatCurrency(expensesTotal)}`]
+            ];
+            
+            items.forEach(([label, value]) => {
+                doc.text(label, 15, yPosition);
+                doc.text(value, 180, yPosition, { align: 'right' });
+                yPosition += 6;
+            });
+            
+            // Linha
+            yPosition += 4;
+            doc.setDrawColor(52, 136, 136);
+            doc.line(15, yPosition, 195, yPosition);
+            yPosition += 7;
+            
+            // Total
+            doc.setFontSize(12);
+            doc.setTextColor(242, 68, 5);
+            doc.text('TOTAL MENSAL', 15, yPosition);
+            doc.text(`R$ ${formatCurrency(totalGeral)}`, 180, yPosition, { align: 'right' });
+            yPosition += 12;
+            
+            // Salário e Saldo
+            if (salary > 0) {
+                doc.setFontSize(11);
+                doc.setTextColor(52, 136, 136);
+                doc.text('💰 SALÁRIO', 10, yPosition);
+                yPosition += 8;
+                
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                
+                doc.text('Salário Total', 15, yPosition);
+                doc.text(`R$ ${formatCurrency(salary)}`, 180, yPosition, { align: 'right' });
+                yPosition += 6;
+                
+                doc.setFontSize(11);
+                if (balance > 0) {
+                    doc.setTextColor(34, 186, 187);
+                    doc.text('SALDO POSITIVO', 15, yPosition);
+                    doc.text(`R$ ${formatCurrency(balance)}`, 180, yPosition, { align: 'right' });
+                } else if (balance < 0) {
+                    doc.setTextColor(242, 68, 5);
+                    doc.text('SALDO NEGATIVO', 15, yPosition);
+                    doc.text(`R$ ${formatCurrency(Math.abs(balance))}`, 180, yPosition, { align: 'right' });
+                } else {
+                    doc.setTextColor(52, 136, 136);
+                    doc.text('SALDO EQUILIBRADO', 15, yPosition);
+                    doc.text(`R$ ${formatCurrency(balance)}`, 180, yPosition, { align: 'right' });
+                }
+                yPosition += 12;
+            }
+            
+            // Seção 2: Detalhes
+            if (yPosition > 250) doc.addPage();
+            
+            doc.setFontSize(14);
+            doc.setTextColor(52, 136, 136);
+            doc.text('🏠 DETALHES', 10, 30);
+            yPosition = 38;
+            
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            
+            const aptDetails = [
+                [`Financiamento (${financialData.apartment.paidInstallments + (financialData.apartment.amortizedInstallments || 0)}/${financialData.apartment.totalInstallments})`, `R$ ${formatCurrency(aptFinancing * financialData.apartment.totalInstallments)}`],
+                [`Entrada (${financialData.entry.paidInstallments + (financialData.entry.amortizedInstallments || 0)}/${financialData.entry.totalInstallments})`, `R$ ${formatCurrency(entryFinancing * financialData.entry.totalInstallments)}`],
+                [`Carro (${financialData.car.paidInstallments + (financialData.car.amortizedInstallments || 0)}/${financialData.car.totalInstallments})`, `R$ ${formatCurrency(carTotal * financialData.car.totalInstallments)}`]
+            ];
+            
+            aptDetails.forEach(([label, value]) => {
+                doc.text(label, 15, yPosition);
+                doc.text(value, 180, yPosition, { align: 'right' });
+                yPosition += 6;
+            });
+            
+            // Rodapé
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Gerado: ${currentDate.toLocaleDateString('pt-BR')} ${currentDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`, 105, 285, { align: 'center' });
+            
+            doc.save(`relatorio-${month.toLowerCase()}-${year}.pdf`);
+            showToast('Relatório gerado!', 'success');
         }
 
         // Firebase Functions
         function saveToFirebase(path, data) {
             database.ref(path).set(data)
                 .then(() => {
-                    updateDataStatus('success');
+                    // Sucesso
                 })
                 .catch(error => {
                     console.error('Erro ao salvar no Firebase:', error);
-                    updateDataStatus('error');
                     showToast('Erro ao salvar dados!', 'danger');
                 });
         }
 
         function updateAllDisplays() {
+            updateSalaryDisplay();
             updateApartmentDisplay();
             updateEntryDisplay();
             updateCarDisplay();
@@ -1487,7 +2144,10 @@
 
         // Utilitários
         function formatCurrency(value) {
-            return value.toFixed(2).replace('.', ',');
+            return new Intl.NumberFormat('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
         }
 
         function showToast(message, type) {
@@ -1505,7 +2165,7 @@
                 if (toast.parentNode) {
                     toast.remove();
                 }
-            }, 3000);
+            }, 2500);
         }
 
         function updateTime() {
@@ -1513,33 +2173,6 @@
             const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
                              now.getMinutes().toString().padStart(2, '0');
             document.getElementById('updateTime').textContent = timeString;
-        }
-
-        function updateDataStatus(status) {
-            const element = document.getElementById('dataStatus');
-            if (status === 'success') {
-                element.innerHTML = '🟢 Dados sincronizados';
-                element.style.color = 'var(--color-primary)';
-            } else {
-                element.innerHTML = '🔴 Erro na sincronização';
-                element.style.color = 'var(--color-danger)';
-            }
-        }
-
-        function exportData() {
-            const dataStr = JSON.stringify(financialData, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', 'controle-financeiro-backup.json');
-            linkElement.click();
-            showToast('Dados exportados com sucesso!', 'success');
-        }
-
-        // Inicializar com dados padrão se Firebase estiver vazio
-        function initializeDefaultData() {
-            // Esta função pode ser usada para popular dados iniciais
-            // Chamar manualmente se necessário
         }
     </script>
 </body>
